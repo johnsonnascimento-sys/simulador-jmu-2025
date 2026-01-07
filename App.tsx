@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { INITIAL_STATE, CalculatorState, Rubrica } from './types';
-import { calculateAll, formatCurrency, getTablesForPeriod, calculateBaseFixa } from './utils/calculationService';
+import { calculateAll, formatCurrency, getTablesForPeriod, calculateBaseFixa } from './utils/calculations';
 import { Card, SectionTitle } from './components/Card';
 import { Input, Select } from './components/Inputs';
 import { DollarSign, Clock, Scissors, Settings, FileText, Table, Calendar, Calculator, Moon, Sun, Plus, Trash2 } from 'lucide-react';
