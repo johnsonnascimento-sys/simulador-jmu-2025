@@ -144,8 +144,8 @@ export const INITIAL_STATE: CalculatorState = {
 
   nome: "",
   periodo: 0,
-  mesRef: "MARÇO",
-  anoRef: 2025,
+  mesRef: ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"][new Date().getMonth()],
+  anoRef: new Date().getFullYear(),
   tipoCalculo: 'comum',
   cargo: 'tec',
   padrao: 'C13',

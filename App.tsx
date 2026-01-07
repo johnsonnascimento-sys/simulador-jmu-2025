@@ -257,10 +257,7 @@ export default function App() {
     doc.setFont("helvetica", "normal");
     doc.text(`Demonstrativo de Pagamento Simulado - Ref: ${state.mesRef}/${state.anoRef}`, 105, 30, { align: "center" });
     doc.text(`Servidor: ${state.nome || "SERVIDOR SIMULADO"}`, 14, 40);
-    doc.text(`Lotação: ${state.lotacao}`, 105, 40);
-
-    doc.setFontSize(8);
-    doc.text(`Banco: ${state.dadosBancarios.banco} / Ag: ${state.dadosBancarios.agencia} / CC: ${state.dadosBancarios.conta}`, 14, 44);
+    // Removed Lotacao and Bank Info as requested
 
     // Convert resultRows to table format
     const tableBody = resultRows.map(row => [
@@ -314,8 +311,6 @@ export default function App() {
       ["PODER JUDICIÁRIO - JUSTIÇA MILITAR DA UNIÃO"],
       [`SIMULAÇÃO DE SALÁRIO - REF: ${state.mesRef}/${state.anoRef}`],
       [`NOME: ${state.nome}`],
-      [`LOTAÇÃO: ${state.lotacao}`],
-      [`BANCO: ${state.dadosBancarios.banco} AG: ${state.dadosBancarios.agencia} CC: ${state.dadosBancarios.conta}`],
       [""],
       ["TIPO", "RUBRICA", "PROVENTOS", "DESCONTOS"]
     ];
@@ -407,7 +402,7 @@ export default function App() {
 
             {/* Pagamento Ref */}
             <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-500">Mês de Referência</label>
+              <label className="text-xs font-medium text-gray-500">Mês de Referência (apenas informativo para o PDF e Excel)</label>
               <div className="flex gap-2">
                 <select className="block w-full rounded-md border-gray-200 bg-gray-50 text-sm focus:border-primary focus:ring-primary" value={state.mesRef} onChange={e => update('mesRef', e.target.value)}>
                   <option>JANEIRO</option>
