@@ -105,6 +105,7 @@ export const calculateBaseFixa = (state: CalculatorState, funcoes: FuncoesTable,
 
 export const calculateAll = (state: CalculatorState): CalculatorState => {
     const { salario, funcoes, valorVR } = getTablesForPeriod(state.periodo);
+    const { baseSemFC, totalComFC, funcaoValor: funcaoValorCalc } = calculateBaseFixa(state, funcoes, salario, valorVR);
 
     // 1. Basic Income
     const baseVencimento = salario[state.cargo][state.padrao] || 0;
@@ -135,7 +136,7 @@ export const calculateAll = (state: CalculatorState): CalculatorState => {
     }
 
     // 4. Variables
-    const preEscolarVal = state.auxPreEscolarQtd * COTA_PRE_ESCOLAR;
+    const preEscolarVal = state.auxPreEscolarQtd * state.cotaPreEscolar;
 
     // HE Calculation - Base Update Logic
     let baseHE = 0;
@@ -236,6 +237,129 @@ export const calculateAll = (state: CalculatorState): CalculatorState => {
     // Abono
     const abonoPerm = state.recebeAbono ? pssMensal : 0;
 
+    // --- CÁLCULO ESPECÍFICO DE 13º SALÁRIO (NOVEMBRO) ---
+    // Em Novembro: Calcula-se o 13º Integral, abate-se o adiantamento.
+    // O IR sobre 13º é Exclusivo na Fonte.
+
+    let gratNatalinaTotal = 0;
+
+    let ir13 = 0;
+    let pss13 = 0;
+
+    // Se for Novembro
+    if (state.tipoCalculo === 'nov') {
+        // Base Calculation
+        let base13 = baseVencimento + gaj + aqTituloVal + aqTreinoVal + funcaoValor + gratVal + state.vpni_lei + state.vpni_decisao + state.ats;
+
+        // --- DYNAMIC RECALCULATION LOGIC FOR MANUAL INPUTS ---
+        if (state.manualAdiant13 && state.adiant13Venc > 0) {
+            // If manual, override the calculated 'base13' with (AdiantVB * 2) + (AdiantFC * 2) 
+            // to respect the user's intent that manual inputs should reflect in the taxes.
+            base13 = (state.adiant13Venc * 2) + (state.adiant13FC * 2);
+        }
+
+        // --- DYNAMIC RECALCULATION LOGIC FOR MANUAL INPUTS ---
+        // User requested: "When I alter Adiant. Ativo EC (Base)... it is not reflecting in Taxes".
+        // This implies the user wants the Gross 13th (which generates the tax) to be derived from the Manual Advance input * 2.
+        // If manual mode is active, we should try to infer the "Effective Base" from the manual advance input.
+
+        if (state.manualAdiant13 && state.adiant13Venc > 0) {
+            // If the user manually set the Advance (Adiant. Ativo EC), we assume the Total Gross Base was 2x that amount?
+            // Or at least, the "part" related to Base.
+            // Let's assume the user wants the "Base do 13º" to follow the manual input logic:
+            // Gross Base ~= (AdiantVB * 2) + Other components? 
+            // Simplification: If manual, override the calculated 'base13' with (AdiantVB * 2) to respect the user's "Base" intent.
+            // EXCEPT: Abono and other things might still apply.
+            // Let's replace 'base13' with (state.adiant13Venc * 2) IF it's significantly different?
+            // Or just use it directly.
+            base13 = state.adiant13Venc * 2;
+
+            // Same for FC?
+            // If AdiantFC is manual, then FC component of Base is AdiantFC * 2.
+            // But 'funcaoValor' is already separate. 
+            // If we use (AdiantVB * 2) as 'base13' (which includes VB+GAJ+AQ...), we might be double counting or missing things.
+            // BUT base13 definition above includes 'funcaoValor'.
+            // Let's refine:
+            // base13 above = Sum(Components).
+            // adiant13Venc (Standard) = (Components - FC) / 2.
+            // So (adiant13Venc * 2) = (Components - FC).
+            // Thus, Effective Base13 = (state.adiant13Venc * 2) + (state.adiant13FC * 2) + Grat + VPNI... ?
+            // No, adiant13FC follows function.
+
+            // SAFEST LOGIC FOR USER INTENT:
+            // Total Gross 13th = (Manual Adiant VB * 2) + (Manual Adiant FC * 2).
+            // This ensures that if they lower the Advance, they lower the Gross, and thus lower the Tax.
+            // We will recalculate 'base13' as just the sum of these two double parts, plus potential Abono.
+
+            // Recalculating base13 using manual inputs:
+            base13 = (state.adiant13Venc * 2) + (state.adiant13FC * 2);
+        }
+
+        // Ajuste da Base do 13º (Gross) para incluir Abono se aplicável (Mirroring ui.js behavior)
+        // ui.js adds 'valAbonoEstimado' to 'baseGN' if recebeAbono is true.
+
+        let abono13Estimado = 0;
+        let base13PSS_Estimada = base13;
+
+        // Remove items from PSS Base if unchecked (Refining the base for PSS calc)
+        if (!state.pssSobreFC) base13PSS_Estimada -= funcaoValor;
+        if (!state.pssSobreAQTreino) base13PSS_Estimada -= aqTreinoVal;
+
+        if (state.recebeAbono) {
+            if (usaTeto) {
+                const baseLimitada = Math.min(base13PSS_Estimada, teto);
+                abono13Estimado = calcPSS(baseLimitada, state.tabelaPSS);
+            } else {
+                abono13Estimado = calcPSS(base13PSS_Estimada, state.tabelaPSS);
+            }
+            // Add to Gross 13th (so the user sees the credit covering the PSS debit)
+            // gratNatalinaTotal += abono13Estimado; // Wait, we need to update the variable
+        }
+
+        gratNatalinaTotal = base13 + abono13Estimado;
+
+        // PSS sobre 13º (Integral)
+        // Now calculate the actual PSS debit to be shown
+        let baseParaPSS13 = base13; // Start fresh
+        // Apply exclusions again for safety
+        if (!state.pssSobreFC) baseParaPSS13 -= funcaoValor;
+        if (!state.pssSobreAQTreino) baseParaPSS13 -= aqTreinoVal;
+
+        // If Abono is included in Gross, does it enter PSS Base?
+        // ui.js: 'basePSS13 = baseStandard'. baseStandard DOES NOT include abono. 
+        // So PSS Base is raw.
+
+        if (usaTeto) {
+            const baseLimitada13 = Math.min(baseParaPSS13, teto);
+            pss13 = calcPSS(baseLimitada13, state.tabelaPSS);
+        } else {
+            pss13 = calcPSS(baseParaPSS13, state.tabelaPSS);
+        }
+
+        // Special Case: If recebeAbono, ui.js essentially adds Abono to Gross, and Debits PSS. Net is 0 change.
+        // My previous logic 'pss13 = 0' hid both.
+        // Better logic: Show PSS (Debit) and ensure Gross is higher (Credit).
+        // If I update gratNatalinaTotal above, I am effectively showing the Abono as part of the 13th payment.
+
+        // IR 13 Calculation
+        // ui.js: baseIR13 = total13Tributavel - valPSS13 ...
+        // total13Tributavel = baseGN + fc ... (baseGN includes Abono)
+        // So BaseIR = (RawBase + Abono) - PSS.
+        // Since Abono ~= PSS, BaseIR ~= RawBase.
+
+        const baseIR13 = gratNatalinaTotal - pss13 - valFunpresp - (state.dependentes * DEDUCAO_DEP);
+        ir13 = calcIR(baseIR13, state.tabelaIR);
+
+        // Ajuste no State para exibição:
+        // Precisamos adicionar "Gratificacao Natalina" (13º Integral) nos Proventos?
+        // Ou o sistema mostra Salário + Diferença de 13º?
+        // Padrão Holerite Novembro: "Gratificação Natalina" (Valor Total) e "Adiantamento Grat. Natalina" (Desconto).
+
+        // Mas a estrutura atual soma "adiant13Venc" como Provento.
+        // Se for nov, não devemos ter 'adiant13Venc' somando de novo como adiantamento.
+        // Devemos ter 'Gratificação Natalina' integral.
+    }
+
     // IR Base - EC (Exercício Corrente)
     let totalTribMensal = baseVencimento + gaj + aqTituloVal + aqTreinoVal + funcaoValor + gratVal + state.vpni_lei + state.vpni_decisao + state.ats + abonoPerm;
 
@@ -261,9 +385,13 @@ export const calculateAll = (state: CalculatorState): CalculatorState => {
 
     // IR Ferias (Separado)
     let irFerias = 0;
-    if (state.ferias1_3 > 0 && !state.feriasAntecipadas) {
-        const baseIRFerias = state.ferias1_3 - (state.dependentes * DEDUCAO_DEP);
-        irFerias = calcIR(baseIRFerias, state.tabelaIR);
+    if (state.ferias1_3 > 0) {
+        if (state.feriasAntecipadas) {
+            irFerias = 0;
+        } else {
+            const baseIRFerias = state.ferias1_3 - (state.dependentes * DEDUCAO_DEP);
+            irFerias = calcIR(baseIRFerias, state.tabelaIR);
+        }
     }
 
     // Transport
@@ -286,10 +414,38 @@ export const calculateAll = (state: CalculatorState): CalculatorState => {
     let adiant13FC = state.adiant13FC;
     let ferias1_3 = state.ferias1_3;
 
-    if (!state.manualAdiant13 && state.tipoCalculo !== 'jan' && state.tipoCalculo !== 'jun') {
-        adiant13Venc = 0;
-        adiant13FC = 0;
+    // Logic for Dynamic Updates:
+    // If NOT manual, we want to recalculate IF:
+    // 1. It is the specific month (Jan for Vacation/13th, Jun for 13th, Nov for 13th Final)
+    // 2. OR if the value is already > 0 (meaning the user clicked "Calculate" in a common month), we keep it updated with current salary.
+
+    if (!state.manualFerias) {
+        if (state.tipoCalculo === 'jan' || ferias1_3 > 0) {
+            // Recalculate based on CURRENT salary state
+            ferias1_3 = totalComFC / 3;
+        }
     }
+
+    // Rounding Vacation to 2 decimals for clean UI
+    ferias1_3 = Math.round(ferias1_3 * 100) / 100;
+
+    if (!state.manualAdiant13) {
+        if (state.tipoCalculo === 'jan' || state.tipoCalculo === 'jun' || state.tipoCalculo === 'nov') {
+            // In Jan/Jun/Nov, auto-calc is mandatory if not lock
+            adiant13Venc = baseSemFC / 2;
+            adiant13FC = funcaoValor / 2;
+        } else if ((adiant13Venc + adiant13FC) > 0) {
+            // In Common months, if it was manually triggered (present > 0), keep updating it dynamically?
+            // Or just keep it as is? User said "values calculated... must be altered dynamically".
+            // So yes, if it exists, update it.
+            adiant13Venc = baseSemFC / 2;
+            adiant13FC = funcaoValor / 2;
+        }
+    }
+
+    // Rounding 13th Advance
+    adiant13Venc = Math.round(adiant13Venc * 100) / 100;
+    adiant13FC = Math.round(adiant13FC * 100) / 100;
 
     if (!state.manualFerias) {
         // Logic for automatic Vacation calculation could go here, but usually it's triggered manually
@@ -311,7 +467,11 @@ export const calculateAll = (state: CalculatorState): CalculatorState => {
         heTotal + substTotalCalc + licencaVal +
         state.auxAlimentacao + preEscolarVal + auxTranspCred + ferias1_3 + adiant13Total + totalRubricasCred;
 
-    const totalDescontos = pssMensal + valFunpresp + irMensal + irEA + irFerias +
+    // Se for Novembro, adiciona Gratificação Natalina Integral na soma bruta (se implementarmos como linha separada)
+    // Por enquanto, vamos manter a lógica simples: se Nov, calcula IR 13º e exibe.
+    // MAS, para o IR 13º aparecer, precisa estar no Total Descontos.
+
+    const totalDescontos = pssMensal + valFunpresp + irMensal + irEA + irFerias + ir13 + pss13 +
         state.emprestimos + state.planoSaude + state.pensao + auxTranspDeb + totalRubricasDeb;
 
     return {
@@ -333,6 +493,9 @@ export const calculateAll = (state: CalculatorState): CalculatorState => {
         irMensal,
         irEA,
         irFerias,
+        ir13,
+        pss13, // Novo campo corrigido
+        gratNatalinaTotal: (state.tipoCalculo === 'nov' ? gratNatalinaTotal : 0), // Novo campo para UX
         auxTransporteValor: auxTranspCred,
         auxTransporteDesc: auxTranspDeb,
         licencaValor: licencaVal,

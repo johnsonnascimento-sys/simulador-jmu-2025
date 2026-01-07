@@ -86,6 +86,7 @@ export interface CalculatorState {
 
   auxAlimentacao: number;
   auxPreEscolarQtd: number;
+  cotaPreEscolar: number;
   auxPreEscolarValor: number;
   auxTransporteGasto: number;
   auxTransporteValor: number; // Credit
@@ -112,6 +113,9 @@ export interface CalculatorState {
   ferias1_3: number;
   manualFerias: boolean; // Checkbox to not auto-calc/zero vacation
   feriasAntecipadas: boolean;
+  ir13?: number;
+  pss13?: number;
+  gratNatalinaTotal?: number;
 
   // 13th Breakdown (Manual Calculation Support)
   adiant13Venc: number; // Adiantamento Ativo EC (Base)
@@ -185,6 +189,7 @@ export const INITIAL_STATE: CalculatorState = {
 
   auxAlimentacao: 1784.42,
   auxPreEscolarQtd: 0,
+  cotaPreEscolar: 1235.77,
   auxPreEscolarValor: 0,
   auxTransporteGasto: 0,
   auxTransporteValor: 0,
@@ -207,6 +212,9 @@ export const INITIAL_STATE: CalculatorState = {
   ferias1_3: 0,
   manualFerias: false,
   feriasAntecipadas: false,
+  ir13: 0,
+  pss13: 0,
+  gratNatalinaTotal: 0,
 
   adiant13Venc: 0,
   adiant13FC: 0,
