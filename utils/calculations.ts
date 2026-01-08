@@ -196,7 +196,7 @@ export const calculateAll = (state: CalculatorState): CalculatorState => {
         abonoEstimadoLicenca = calcPSS(baseLicencaTotal, state.tabelaPSS);
     }
 
-    const licencaVal = ((baseLicencaTotal + abonoEstimadoLicenca) / 30) * Math.min(state.licencaDias, 4);
+    const licencaVal = ((baseLicencaTotal + abonoEstimadoLicenca) / 30) * state.licencaDias;
 
     // 5. Total Base for PSS
     let basePSS = baseVencimento + gaj + aqTituloVal + state.vpni_lei + state.vpni_decisao + state.ats;
@@ -451,6 +451,16 @@ export const calculateAll = (state: CalculatorState): CalculatorState => {
         heTotal + substTotalCalc + licencaVal +
         state.auxAlimentacao + preEscolarVal + auxTranspCred + ferias1_3 + totalRubricasCred + credito13;
 
+    // Abono de Permanência sobre 13º (Credit) - logic: matches PSS 13
+    let abonoPerm13 = 0;
+    if (isNov && state.recebeAbono && pss13 > 0) {
+        abonoPerm13 = pss13;
+        // Adding to Total Bruto immediately (or could be separate variable if needed for display)
+        // But totalBruto above is const. Let's make it let or just add it to a new finalBruto.
+    }
+
+    const finalTotalBruto = totalBruto + abonoPerm13;
+
     // Ferias Antecipadas Debit
     const finalFerias1_3 = state.manualFerias ? state.ferias1_3 : ferias1_3;
     const feriasDesc = state.feriasAntecipadas ? finalFerias1_3 : 0;
@@ -483,12 +493,13 @@ export const calculateAll = (state: CalculatorState): CalculatorState => {
         auxTransporteValor: auxTranspCred,
         auxTransporteDesc: auxTranspDeb,
         licencaValor: licencaVal,
-        totalBruto,
+        totalBruto: finalTotalBruto,
         totalDescontos,
-        liquido: totalBruto - totalDescontos,
+        liquido: finalTotalBruto - totalDescontos,
         ferias1_3: finalFerias1_3,
         feriasDesc, // Return calculated debit
         adiant13Venc: state.manualAdiant13 ? state.adiant13Venc : adiant13Venc,
         adiant13FC: state.manualAdiant13 ? state.adiant13FC : adiant13FC,
+        abonoPerm13, // Return calculated Abono 13
     };
 };

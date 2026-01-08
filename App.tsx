@@ -207,6 +207,9 @@ export default function App() {
       if (state.gratNatalinaTotal && state.gratNatalinaTotal > 0) {
         rows.push({ label: 'GRATIFICAÇÃO NATALINA-ATIVO EC', value: state.gratNatalinaTotal, type: 'C' });
       }
+      if (state.abonoPerm13 && state.abonoPerm13 > 0) {
+        rows.push({ label: 'ABONO DE PERMANÊNCIA-GN (13º) EC 41/2003 ATIVO EC', value: state.abonoPerm13, type: 'C' });
+      }
       if (state.adiant13Venc > 0) {
         rows.push({ label: 'GRATIFICAÇÃO NATALINA-ADIANT. ATIVO EC', value: state.adiant13Venc, type: 'D' });
       }
@@ -877,7 +880,7 @@ export default function App() {
                     <input type="checkbox" checked={state.incluirAbonoLicenca} onChange={e => update('incluirAbonoLicenca', e.target.checked)} className="rounded text-teal-600 mt-0.5" />
                     <span className="text-gray-700">Incluir Abono na Base? (ATN 899 Art 4º)</span>
                   </label>
-                  <Input label="Qtd. Dias a Indenizar (Máx 4)" type="number" max={4} value={state.licencaDias} onChange={e => update('licencaDias', Number(e.target.value))} className="bg-white" />
+                  <Input label="Qtd. Dias a Indenizar (Máx 4 por mês)" type="number" value={state.licencaDias} onChange={e => update('licencaDias', Number(e.target.value))} className="bg-white" />
                 </div>
                 <div className="mt-3 bg-teal-100 p-2 rounded flex justify-between items-center">
                   <span className="text-xs font-medium text-teal-800">Valor Estimado (Isento IR/PSS)</span>

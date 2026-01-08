@@ -51,6 +51,7 @@ export interface CalculatorState {
   ats: number;
   recebeAbono: boolean;
   abonoPermanencia: number;
+  abonoPerm13?: number;
   gratEspecificaTipo: '0' | 'gae' | 'gas';
   gratEspecificaValor: number;
   incidirPSSGrat: boolean;
@@ -163,6 +164,7 @@ export const INITIAL_STATE: CalculatorState = {
   ats: 0,
   recebeAbono: false,
   abonoPermanencia: 0,
+  abonoPerm13: 0,
   gratEspecificaTipo: '0',
   gratEspecificaValor: 0,
   incidirPSSGrat: true,
