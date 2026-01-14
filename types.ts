@@ -13,6 +13,25 @@ export interface TaxTable {
   faixas: { min: number; max: number; rate: number }[];
 }
 
+export interface CourtConfig {
+  bases: {
+    salario: SalaryTable;
+    funcoes: FuncoesTable;
+  };
+  historico_pss: Record<string, TaxTable>;
+  historico_ir: Record<string, number>;
+  values: {
+    food_allowance?: number;
+    pre_school?: number;
+    deducao_dep?: number;
+    cj1_integral_base?: number;
+  };
+  menus?: {
+    food_allowance?: Array<{ label: string; value: number }>;
+    preschool_allowance?: Array<{ label: string; value: number }>;
+  };
+}
+
 export interface Rubrica {
   id: string;
   descricao: string;
