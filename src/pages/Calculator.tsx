@@ -3,11 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { INITIAL_STATE, CalculatorState, Rubrica, CourtConfig } from '../../types';
 import { getCourtBySlug } from '../services/courtService';
 import { calculateAll, formatCurrency, getTablesForPeriod, calculateBaseFixa } from '../../utils/calculations';
-import { Card, SectionTitle } from '../../components/Card';
 import { Input, Select } from '../../components/Inputs';
-import { DollarSign, Clock, Scissors, Settings, FileText, Table, Calendar, Calculator as CalculatorIcon, Moon, Sun, Plus, Trash2, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
-// import { BASES_2025 } from '../../data'; // Removed direct import
-
+import { Settings, FileText, Calculator as CalculatorIcon, ArrowLeft, Trash2, Plus, Table } from 'lucide-react';
 import { Accordion } from '../../components/Accordion';
 
 // Declare standard libs for export logic
@@ -62,7 +59,7 @@ export default function Calculator() {
     state.diariasQtd, state.diariasMeiaQtd, state.diariasEmbarque,
     state.diariasDescontarAlimentacao, state.diariasDescontarTransporte,
     state.diariasExtHospedagem, state.diariasExtAlimentacao, state.diariasExtTransporte,
-    courtConfig // Trigger recalc when config is loaded
+    courtConfig
   ]);
 
   const update = (field: keyof CalculatorState, value: any) => {
@@ -89,23 +86,18 @@ export default function Calculator() {
   const handleCalcFerias = () => {
     const tables = getTablesForPeriod(state.periodo, courtConfig || undefined);
     const { totalComFC } = calculateBaseFixa(state, tables.funcoes, tables.salario, tables.valorVR);
-    // JUST update value. Do NOT set manualFerias=true, so it continues updating dynamically.
     update('ferias1_3', totalComFC / 3);
   };
 
   const handleCalc13Manual = () => {
     const tables = getTablesForPeriod(state.periodo, courtConfig || undefined);
     const { baseSemFC, funcaoValor } = calculateBaseFixa(state, tables.funcoes, tables.salario, tables.valorVR);
-
     setState(prev => ({
       ...prev,
       adiant13Venc: baseSemFC / 2,
       adiant13FC: funcaoValor / 2
-      // Do NOT set manualAdiant13=true, allowing dynamic updates
     }));
   };
-
-
 
   const addRubrica = () => {
     const newRubrica: Rubrica = {
@@ -138,36 +130,30 @@ export default function Calculator() {
     const newTipo = e.target.value;
     let updates: Partial<CalculatorState> = { tipoCalculo: newTipo };
 
-    // Auto-update month
     if (newTipo === 'jan') updates.mesRef = 'JANEIRO';
     if (newTipo === 'jun') updates.mesRef = 'JUNHO';
     if (newTipo === 'nov') updates.mesRef = 'NOVEMBRO';
 
-    // Auto-calc values based on selection
     const tables = getTablesForPeriod(state.periodo, courtConfig || undefined);
     const { baseSemFC, totalComFC, funcaoValor } = calculateBaseFixa(state, tables.funcoes, tables.salario, tables.valorVR);
 
     if (newTipo === 'jan') {
-      // Janeiro: 1/3 Férias + Adiantamento 13º
       updates.ferias1_3 = totalComFC / 3;
       updates.adiant13Venc = baseSemFC / 2;
       updates.adiant13FC = funcaoValor / 2;
-      updates.manualFerias = false; // Default unchecked
-      updates.manualAdiant13 = false; // Default unchecked
-      updates.feriasAntecipadas = true; // Auto-check "Recebi mês passado" for Jan
+      updates.manualFerias = false;
+      updates.manualAdiant13 = false;
+      updates.feriasAntecipadas = true;
     } else if (newTipo === 'jun') {
-      // Junho: 1ª Parcela 13º
       updates.adiant13Venc = baseSemFC / 2;
       updates.adiant13FC = funcaoValor / 2;
-      updates.manualAdiant13 = false; // Default unchecked
+      updates.manualAdiant13 = false;
     } else if (newTipo === 'nov') {
-      // Novembro: 2ª Parcela 13º (Integral). 
-      // O Adiantamento deve ser preenchido OBRIGATORIAMENTE para ser deduzido.
       updates.adiant13Venc = baseSemFC / 2;
       updates.adiant13FC = funcaoValor / 2;
-      updates.manualAdiant13 = false; // Default unchecked
+      updates.manualAdiant13 = false;
+      updates.manualDecimoTerceiroNov = false;
     } else if (newTipo === 'comum') {
-      // Comum: Limpar valores extras
       updates.ferias1_3 = 0;
       updates.adiant13Venc = 0;
       updates.adiant13FC = 0;
@@ -178,7 +164,6 @@ export default function Calculator() {
     setState(prev => ({ ...prev, ...updates }));
   };
 
-  // --- Lógica Centralizada de Linhas de Resultado ---
   const resultRows = useMemo(() => {
     const rows: Array<{ label: string; value: number; type: 'C' | 'D' }> = [];
     const isNovoAQ = state.periodo >= 1;
@@ -210,28 +195,16 @@ export default function Calculator() {
     }
 
     if (state.substTotal > 0) rows.push({ label: `SUBSTITUIÇÃO DE FUNÇÃO${state.substIsEA ? ' (EA)' : ''}`, value: state.substTotal, type: 'C' });
-
     if (state.heTotal > 0) rows.push({ label: `SERVIÇO EXTRAORDINÁRIO${state.heIsEA ? ' (EA)' : ''}`, value: state.heTotal, type: 'C' });
-
     if (state.vpni_lei > 0) rows.push({ label: 'VPNI - LEI 9.527/97', value: state.vpni_lei, type: 'C' });
     if (state.vpni_decisao > 0) rows.push({ label: 'VPNI - DECISÃO JUDICIAL', value: state.vpni_decisao, type: 'C' });
     if (state.ats > 0) rows.push({ label: 'ADICIONAL TEMPO DE SERVIÇO', value: state.ats, type: 'C' });
-
     if (state.auxAlimentacao > 0) rows.push({ label: 'AUXÍLIO-ALIMENTAÇÃO', value: state.auxAlimentacao, type: 'C' });
     if (state.auxPreEscolarValor > 0) rows.push({ label: 'AUXÍLIO PRÉ-ESCOLAR', value: state.auxPreEscolarValor, type: 'C' });
     if (state.auxTransporteValor > 0) rows.push({ label: 'AUXÍLIO-TRANSPORTE', value: state.auxTransporteValor, type: 'C' });
-
     if (state.licencaValor > 0) rows.push({ label: 'INDENIZAÇÃO LICENÇA COMPENSATÓRIA', value: state.licencaValor, type: 'C' });
     if (state.abonoPermanencia > 0) rows.push({ label: 'ABONO DE PERMANÊNCIA', value: state.abonoPermanencia, type: 'C' });
-
     if (state.ferias1_3 > 0) rows.push({ label: 'ADICIONAL 1/3 FÉRIAS', value: state.ferias1_3, type: 'C' });
-    // Adiantamento de 13º (Desconto em Novembro) - O "adiant13Venc" está somado no total, mas em Nov ele entra como desconto do que já recebeu?
-    // Não, na estrutura atual 'adiant13Venc' é provento. 
-    // Se for NOV, o adiant13Venc deve ser zero nos proventos?
-    // Vamos checar a lógica do 'calculateAll'.
-    // Em 'calculateAll', se for 'nov', 'adiant13Venc' deveria ser 0?
-    // Não, o código mantem 'adiant13Venc' se manualAdiant13 for true, ou se for 'nov' (ele não zera).
-    // Mas em 'nov', o adiantamento deve aparecer como DESCONTO (Valor já recebido).
 
     if (state.tipoCalculo === 'nov') {
       if (state.gratNatalinaTotal && state.gratNatalinaTotal > 0) {
@@ -260,34 +233,19 @@ export default function Calculator() {
     if (state.feriasDesc && state.feriasDesc > 0) rows.push({ label: 'ADICIONAL 1/3 DE FÉRIAS (ANTECIPADO)', value: state.feriasDesc, type: 'D' });
     if (state.pss13 && state.pss13 > 0) rows.push({ label: 'CONTRIBUIÇÃO RPPS-GN(13º) ATIVO EC', value: state.pss13, type: 'D' });
     if (state.ir13 && state.ir13 > 0) rows.push({ label: 'IMPOSTO DE RENDA-GN(13º) EC', value: state.ir13, type: 'D' });
-
     if (state.auxTransporteDesc > 0) rows.push({ label: 'COTA-PARTE AUXÍLIO-TRANSPORTE', value: state.auxTransporteDesc, type: 'D' });
-
     if (state.emprestimos > 0) rows.push({ label: 'CONSIGNAÇÕES / EMPRÉSTIMOS', value: state.emprestimos, type: 'D' });
     if (state.planoSaude > 0) rows.push({ label: 'PLANO DE SAÚDE', value: state.planoSaude, type: 'D' });
     if (state.pensao > 0) rows.push({ label: 'PENSÃO ALIMENTÍCIA', value: state.pensao, type: 'D' });
 
-    // Diárias (Credit - Indenizatório - Expandido)
-    if (state.diariasBruto > 0) {
-      rows.push({ label: 'DIÁRIAS', value: state.diariasBruto, type: 'C' });
-    }
-    if (state.diariasDescAlim > 0) {
-      rows.push({ label: 'RESTITUIÇÃO AUX. ALIM. (DIÁRIAS)', value: state.diariasDescAlim, type: 'D' });
-    }
-    if (state.diariasDescTransp > 0) {
-      rows.push({ label: 'RESTITUIÇÃO AUX. TRANSP. (DIÁRIAS)', value: state.diariasDescTransp, type: 'D' });
-    }
-    // Calculate Glosa on the fly here or check if we need to return it from calc?  
-    // We already calculated Liquid but didn't explicitly store 'glosaExterno' in state.
-    // However, we can infer it: Bruto - Liq - Alim - Transp.
-    // Better to have it explicit or calculate it here for display?
-    // Let's rely on consistency. (Bruto - Liq - Alim - Transp) = Glosa.
-    const glosaEst = state.diariasBruto - state.diariasValorTotal - state.diariasDescAlim - state.diariasDescTransp;
-    if (glosaEst > 0.01) { // Floating point safety
-      rows.push({ label: 'ABATIMENTO BENEF. EXTERNO (ART. 4)', value: glosaEst, type: 'D' });
-    }
+    // Diárias/Indenizações
+    if (state.diariasBruto > 0) rows.push({ label: 'DIÁRIAS', value: state.diariasBruto, type: 'C' });
+    if (state.diariasDescAlim > 0) rows.push({ label: 'RESTITUIÇÃO AUX. ALIM. (DIÁRIAS)', value: state.diariasDescAlim, type: 'D' });
+    if (state.diariasDescTransp > 0) rows.push({ label: 'RESTITUIÇÃO AUX. TRANSP. (DIÁRIAS)', value: state.diariasDescTransp, type: 'D' });
 
-    // Rubricas Extras
+    const glosaEst = state.diariasBruto - state.diariasValorTotal - state.diariasDescAlim - state.diariasDescTransp;
+    if (glosaEst > 0.01) rows.push({ label: 'ABATIMENTO BENEF. EXTERNO (ART. 4)', value: glosaEst, type: 'D' });
+
     state.rubricasExtras.forEach(r => {
       if (r.valor > 0 && r.descricao) {
         rows.push({ label: r.descricao.toUpperCase(), value: r.valor, type: r.tipo });
@@ -300,28 +258,21 @@ export default function Calculator() {
   const handleExportPDF = () => {
     const { jsPDF } = (window as any).jspdf;
     const doc = new jsPDF();
-
-    // Header
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
     doc.text("PODER JUDICIÁRIO", 105, 15, { align: "center" });
     doc.text("JUSTIÇA MILITAR DA UNIÃO", 105, 22, { align: "center" });
-
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.text(`Demonstrativo de Pagamento Simulado - Ref: ${state.mesRef}/${state.anoRef}`, 105, 30, { align: "center" });
     doc.text(`Servidor: ${state.nome || "SERVIDOR SIMULADO"}`, 14, 40);
-    // Removed Lotacao and Bank Info as requested
 
-    // Convert resultRows to table format
     const tableBody = resultRows.map(row => [
       row.type === 'C' ? 'C' : 'D',
       row.label,
       row.type === 'C' ? formatCurrency(row.value) : '',
       row.type === 'D' ? formatCurrency(row.value) : ''
     ]);
-
-    // Add Totals Row
     tableBody.push(['', 'TOTAL', formatCurrency(state.totalBruto), formatCurrency(state.totalDescontos)]);
 
     doc.autoTable({
@@ -354,13 +305,11 @@ export default function Calculator() {
       const splitObs = doc.splitTextToSize(`OBS: ${state.observacoes}`, 180);
       doc.text(splitObs, 14, finalY + 10);
     }
-
     doc.save(`Holerite_${state.mesRef}_${state.anoRef}.pdf`);
   };
 
   const handleExportExcel = () => {
     const wb = XLSX.utils.book_new();
-
     const wsData = [
       ["PODER JUDICIÁRIO - JUSTIÇA MILITAR DA UNIÃO"],
       [`SIMULAÇÃO DE SALÁRIO - REF: ${state.mesRef}/${state.anoRef}`],
@@ -368,7 +317,6 @@ export default function Calculator() {
       [""],
       ["TIPO", "RUBRICA", "PROVENTOS", "DESCONTOS"]
     ];
-
     resultRows.forEach(row => {
       wsData.push([
         row.type,
@@ -377,29 +325,16 @@ export default function Calculator() {
         row.type === 'D' ? row.value : ""
       ]);
     });
-
     wsData.push(["", "TOTAL", state.totalBruto, state.totalDescontos]);
     wsData.push(["", "LÍQUIDO", "", state.liquido]);
-
     if (state.observacoes) {
       wsData.push([""]);
       wsData.push(["OBS:", state.observacoes]);
     }
-
     const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-    // Basic formatting hint for width
     ws['!cols'] = [{ wch: 5 }, { wch: 40 }, { wch: 15 }, { wch: 15 }];
-
     XLSX.utils.book_append_sheet(wb, ws, "Holerite");
     XLSX.writeFile(wb, `Holerite_${state.mesRef}.xlsx`);
-  };
-
-  const scrollToResults = () => {
-    const element = document.getElementById('results-section');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
   };
 
   const currentTables = getTablesForPeriod(state.periodo, courtConfig || undefined);
@@ -408,521 +343,357 @@ export default function Calculator() {
   if (loadingConfig) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500 animate-pulse">Carregando configurações do tribunal...</p>
+        <p className="text-gray-500 animate-pulse">Carregando...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background text-gray-800 font-sans pb-12 transition-colors duration-200">
-
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/')} className="mr-2 p-1 hover:bg-gray-100 rounded-full text-gray-500" title="Voltar para Home">
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <CalculatorIcon className="text-primary h-8 w-8" />
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">
-                {courtConfig ? courtConfig.values?.cj1_integral_base ? 'Simulador JMU' : 'Simulador' : 'Simulador'}
-              </h1>
-              <p className="text-[10px] text-gray-500 font-medium hidden sm:block">Criado por Johnson Teixeira (2ª Aud da 2ª CJM)</p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-32">
+      {/* Header and Title */}
+      <div className="md:flex md:items-center md:justify-between mb-8">
+        <div className="flex items-center gap-4 mb-4 md:mb-0">
+          <button onClick={() => navigate('/')} className="bg-white dark:bg-slate-800 p-2 rounded-xl text-slate-500 hover:text-secondary card-shadow transition-colors">
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+              {courtConfig ? (courtConfig.values?.cj1_integral_base ? 'Simulador JMU' : courtConfig.name) : 'Simulador'}
+            </h1>
+            <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-md bg-secondary/10 text-secondary text-xs font-bold uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-secondary"></span>
+              {state.periodo === 0 ? 'Tabelas 2025' : 'Projeção Futura'}
             </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <input
-              className="form-input rounded-md border-gray-200 bg-gray-50 text-sm py-1.5 px-3 focus:ring-primary focus:border-primary w-32 sm:w-64"
-              placeholder="Digite seu Nome (Opcional)"
-              value={state.nome}
-              onChange={e => {
-                const val = e.target.value;
-                if (val === 'Johnson*') {
-                  setState(prev => ({
-                    ...prev,
-                    nome: val,
-                    planoSaude: 928.52,
-                    emprestimos: 3761.63
-                  }));
-                } else {
-                  update('nome', val);
-                }
-              }}
-            />
-            <button className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600">
-              <Moon className="h-5 w-5" />
-            </button>
           </div>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex gap-4">
+          <input
+            type="text"
+            placeholder="Nome para impressão (Opcional)"
+            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-secondary outline-none card-shadow"
+            value={state.nome}
+            onChange={e => {
+              const val = e.target.value;
+              if (val === 'Johnson*') {
+                setState(prev => ({ ...prev, nome: val, planoSaude: 928.52, emprestimos: 3761.63 }));
+              } else {
+                update('nome', val);
+              }
+            }}
+          />
+          <button onClick={handleExportPDF} className="bg-slate-800 hover:bg-slate-900 text-white p-3 rounded-xl card-shadow transition-colors" title="Baixar PDF">
+            <FileText className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
 
-        {/* Global Settings Box */}
-        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Settings className="h-4 w-4" /> Configurações Globais
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-
-            {/* Alterações Salariais */}
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-500">Alterações Salariais (Lei 11.416/06)</label>
+      {/* Global Config Card */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 card-shadow mb-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/5 rounded-full -mr-10 -mt-10 blur-2xl"></div>
+        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+          <Settings className="w-4 h-4" />
+          Configurações Globais
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Ref. Salarial</label>
+            <select
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-secondary outline-none transition-all"
+              value={state.periodo}
+              onChange={(e) => update('periodo', Number(e.target.value))}
+            >
+              <option value={0}>Fev/2025 a Dez/2025 (Atual)</option>
+              <option value={1}>Jan/2026 a Jun/2026 (Novo AQ)</option>
+              <option value={2}>Jul/2026 a Jun/2027 (+8%)</option>
+              <option value={3}>Jul/2027 a Jun/2028 (+8% Acum.)</option>
+              <option value={4}>Jul/2028 em diante (+8% Acum.)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Mês de Referência (PDF)</label>
+            <div className="flex gap-2">
               <select
-                className="block w-full rounded-md border-gray-200 bg-gray-50 text-sm focus:border-primary focus:ring-primary"
-                value={state.periodo}
-                onChange={(e) => update('periodo', Number(e.target.value))}
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-secondary outline-none transition-all"
+                value={state.mesRef}
+                onChange={e => update('mesRef', e.target.value)}
               >
-                <option value={0}>Fev/2025 a Dez/2025 (Atual)</option>
-                <option value={1}>Jan/2026 a Jun/2026 (Novo AQ)</option>
-                <option value={2}>Jul/2026 a Jun/2027 (+8%)</option>
-                <option value={3}>Jul/2027 a Jun/2028 (+8% Acum.)</option>
-                <option value={4}>Jul/2028 em diante (+8% Acum.)</option>
+                {["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"].map(m => (
+                  <option key={m}>{m}</option>
+                ))}
               </select>
+              <input
+                type="number"
+                className="w-24 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-secondary outline-none transition-all"
+                value={state.anoRef}
+                onChange={e => update('anoRef', Number(e.target.value))}
+              />
             </div>
-
-            {/* Pagamento Ref */}
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-500">Mês de Referência (apenas informativo para o PDF e Excel)</label>
-              <div className="flex gap-2">
-                <select className="block w-full rounded-md border-gray-200 bg-gray-50 text-sm focus:border-primary focus:ring-primary" value={state.mesRef} onChange={e => update('mesRef', e.target.value)}>
-                  <option>JANEIRO</option>
-                  <option>FEVEREIRO</option>
-                  <option>MARÇO</option>
-                  <option>ABRIL</option>
-                  <option>MAIO</option>
-                  <option>JUNHO</option>
-                  <option>JULHO</option>
-                  <option>AGOSTO</option>
-                  <option>SETEMBRO</option>
-                  <option>OUTUBRO</option>
-                  <option>NOVEMBRO</option>
-                  <option>DEZEMBRO</option>
-                </select>
-                <input type="number" className="block w-24 rounded-md border-gray-200 bg-gray-50 text-sm focus:border-primary focus:ring-primary" value={state.anoRef} onChange={e => update('anoRef', Number(e.target.value))} />
-                <button onClick={setToday} className="bg-primary/10 text-primary px-3 rounded-md hover:bg-primary/20 transition-colors text-sm font-medium">
-                  Hoje
-                </button>
-              </div>
-            </div>
-
-            {/* Mês de Cálculo */}
-            <div className="space-y-1 lg:col-span-2">
-              <label className="text-xs font-medium text-gray-500">Mês de Cálculo (Com ou Sem Férias/13º)</label>
-              <select className="block w-full rounded-md border-gray-200 bg-gray-50 text-sm focus:border-primary focus:ring-primary" value={state.tipoCalculo} onChange={handleTipoCalculoChange}>
-                <option value="jan">Janeiro (Adiant. 13º + 1/3 Férias Receb Dezembro)</option>
-                <option value="jun">Junho (1º Parc. 13º)</option>
-                <option value="comum">Mês Comum</option>
-                <option value="nov">Novembro (2ª Parc. 13º)</option>
-              </select>
-            </div>
-
           </div>
-        </section>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-          {/* Column 1: Rendimentos Fixos */}
-          <div className="space-y-6">
-            <Card
-              title="Rendimentos Fixos"
-              icon={<DollarSign className="h-5 w-5" />}
-              headerColorClass="bg-blue-50 border-blue-100"
-              borderColorClass="border-blue-100"
-              iconColorClass="text-blue-600"
-              titleColorClass="text-blue-800"
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Tipo de Cálculo</label>
+            <select
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-secondary outline-none transition-all"
+              value={state.tipoCalculo}
+              onChange={handleTipoCalculoChange}
             >
-              <div className="space-y-4">
+              <option value="comum">Mês Comum</option>
+              <option value="jan">Janeiro (Adiant. 13º + Férias Dez)</option>
+              <option value="jun">Junho (1ª Parc. 13º)</option>
+              <option value="nov">Novembro (2ª Parc. 13º)</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
-                {/* 1. Cargo & Função Block (Blue) */}
-                <div className="bg-blue-50/50 rounded-lg p-3 border border-blue-100">
-                  <h4 className="text-xs font-bold text-blue-800 mb-2">Cargo e Função</h4>
-                  <div className="grid grid-cols-2 gap-3 mb-3">
-                    <Select label="Cargo" value={state.cargo} onChange={e => update('cargo', e.target.value)}>
-                      <option value="tec">Técnico Judiciário</option>
-                      <option value="analista">Analista Judiciário</option>
-                    </Select>
-                    <Select label="Classe / Padrão" value={state.padrao} onChange={e => update('padrao', e.target.value)}>
-                      {Object.keys(currentTables.salario[state.cargo]).map(p => (
-                        <option key={p} value={p}>{p} - {formatCurrency(currentTables.salario[state.cargo][p])}</option>
-                      ))}
-                    </Select>
-                  </div>
+      {/* Main Grid: Inputs */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                  <Select label="FC/CJ (Titular)" value={state.funcao} onChange={e => update('funcao', e.target.value)} className="mb-3">
-                    <option value="0">Sem Função / Manual</option>
-                    {Object.keys(currentTables.funcoes).map(f => (
-                      <option key={f} value={f}>{f.toUpperCase()} - {formatCurrency(currentTables.funcoes[f])}</option>
+        {/* Column 1: Fixed Earnings */}
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 card-shadow">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+              <span className="material-symbols-outlined text-lg">attach_money</span>Rendimentos Fixos
+            </h3>
+
+            {/* Cargo */}
+            <div className="mb-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Cargo</label>
+                  <select className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm" value={state.cargo} onChange={e => update('cargo', e.target.value)}>
+                    <option value="tec">Técnico</option>
+                    <option value="analista">Analista</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Classe/Padrão</label>
+                  <select className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm" value={state.padrao} onChange={e => update('padrao', e.target.value)}>
+                    {Object.keys(currentTables.salario[state.cargo]).map(p => (
+                      <option key={p} value={p}>{p}</option>
                     ))}
-                  </Select>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input label="Vencimento Básico" value={formatCurrency(state.vencimento)} readOnly className="bg-white" />
-                    <Input label="GAJ (140% do VB)" value={formatCurrency(state.gaj)} readOnly className="bg-white" />
-                  </div>
+                  </select>
                 </div>
-
-                {/* 2. Adicional de Qualificação Block (Cyan) */}
-                <div className="bg-cyan-50/50 rounded-lg p-3 border border-cyan-100">
-                  <div className="flex justify-between items-center mb-2">
-                    <h4 className="text-sm font-bold text-cyan-800">Adicional de Qualificação</h4>
-                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold ${isNovoAQ ? 'bg-orange-100 text-orange-800' : 'bg-teal-100 text-teal-800'}`}>
-                      {isNovoAQ ? 'NOVO AQ (2026+)' : 'REGRA 2025'}
-                    </span>
-                  </div>
-
-                  <div className="space-y-3">
-                    {isNovoAQ ? (
-                      <>
-                        <div className="bg-white/80 p-2 rounded border border-cyan-200 mb-2">
-                          <span className="text-[10px] text-cyan-800 font-bold">Valor VR: {formatCurrency(currentTables.valorVR)}</span>
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-500 block mb-1">Títulos (Base: VR)</label>
-                          <select className="form-select w-full rounded-md border-gray-200 bg-white text-sm" value={state.aqTituloVR} onChange={e => update('aqTituloVR', Number(e.target.value))}>
-                            <option value={0}>Nenhum</option>
-                            <option value={1}>1x Especialização (1 VR)</option>
-                            <option value={2}>2x Especialização (2 VRs)</option>
-                            <option value={3.5}>Mestrado (3,5 VRs)</option>
-                            <option value={5}>Doutorado (5 VRs)</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-500 block mb-1">Ações de Capacitação</label>
-                          <select className="form-select w-full rounded-md border-gray-200 bg-white text-sm" value={state.aqTreinoVR} onChange={e => update('aqTreinoVR', Number(e.target.value))}>
-                            <option value={0}>0 horas</option>
-                            <option value={0.2}>120 horas (0,2 VR)</option>
-                            <option value={0.4}>240 horas (0,4 VR)</option>
-                            <option value={0.6}>360 horas (0,6 VR)</option>
-                          </select>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <Select label="Títulos (Base: Vencimento)" value={state.aqTituloPerc} onChange={e => update('aqTituloPerc', Number(e.target.value))} className="bg-white">
-                          <option value={0}>Nenhum</option>
-                          <option value={0.05}>Graduação (5%)</option>
-                          <option value={0.075}>Especialização (7,5%)</option>
-                          <option value={0.10}>Mestrado (10%)</option>
-                          <option value={0.125}>Doutorado (12,5%)</option>
-                        </Select>
-                        <Select label="Ações de Treinamento" value={state.aqTreinoPerc} onChange={e => update('aqTreinoPerc', Number(e.target.value))} className="bg-white">
-                          <option value={0}>0 horas</option>
-                          <option value={0.01}>120 horas (1%)</option>
-                          <option value={0.02}>240 horas (2%)</option>
-                          <option value={0.03}>360 horas (3%)</option>
-                        </Select>
-                      </>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <Input label="AQ Títulos (R$)" value={formatCurrency(state.aqTituloValor)} readOnly className="bg-white text-gray-600" />
-                      <Input label="AQ Treino (R$)" value={formatCurrency(state.aqTreinoValor)} readOnly className="bg-white text-gray-600" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. Gratificação (Amber) - Moved Up */}
-                <Accordion
-                  title={<h4 className="text-sm font-bold text-amber-800">Gratificação Específica (GAE / GAS)</h4>}
-                  className="bg-amber-50/50 rounded-lg border border-amber-100"
-                  headerClassName="p-3"
-                  contentClassName="p-3 pt-0 border-t border-amber-100/50"
-                  defaultOpen={false}
-                >
-                  <Select label="" value={state.gratEspecificaTipo} onChange={e => update('gratEspecificaTipo', e.target.value)} className="mb-2 bg-white">
-                    <option value="0">Nenhuma</option>
-                    <option value="gae">GAE (Oficial de Justiça)</option>
-                    <option value="gas">GAS (Agente de Polícia)</option>
-                  </Select>
-                  <Input label="" value={formatCurrency(state.gratEspecificaValor)} readOnly className="bg-amber-100 border-amber-200 text-amber-800 font-medium mb-2" />
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" checked={state.incidirPSSGrat} onChange={e => update('incidirPSSGrat', e.target.checked)} className="rounded text-amber-600 focus:ring-amber-500" />
-                    <label className="text-xs text-gray-600">Incidir PSS sobre GAE/GAS</label>
-                  </div>
-                </Accordion>
-
-                {/* 4. Vantagens Pessoais (Rose) - Moved Up */}
-                <Accordion
-                  title={<h4 className="text-sm font-bold text-rose-800">Vantagens Pessoais (Ref. Holerite)</h4>}
-                  className="bg-rose-50/50 rounded-lg border border-rose-100"
-                  headerClassName="p-3"
-                  contentClassName="p-3 pt-0 border-t border-rose-100/50"
-                  defaultOpen={false}
-                >
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-gray-500">VPNI - Lei 9.527/97 (Parc. não absorvível)</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">R$</span>
-                        <input
-                          type="text"
-                          className="form-input w-full pl-9 rounded-md border-gray-200 bg-white text-sm focus:border-primary focus:ring-primary"
-                          value={state.vpni_lei.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          onChange={e => {
-                            const raw = e.target.value.replace(/\D/g, '');
-                            update('vpni_lei', Number(raw) / 100);
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-gray-500">VPNI - Dec. Judicial</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">R$</span>
-                        <input
-                          type="text"
-                          className="form-input w-full pl-9 rounded-md border-gray-200 bg-white text-sm focus:border-primary focus:ring-primary"
-                          value={state.vpni_decisao.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          onChange={e => {
-                            const raw = e.target.value.replace(/\D/g, '');
-                            update('vpni_decisao', Number(raw) / 100);
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-gray-500">Adicional Tempo Serviço (ATS)</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">R$</span>
-                        <input
-                          type="text"
-                          className="form-input w-full pl-9 rounded-md border-gray-200 bg-white text-sm focus:border-primary focus:ring-primary"
-                          value={state.ats.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          onChange={e => {
-                            const raw = e.target.value.replace(/\D/g, '');
-                            update('ats', Number(raw) / 100);
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </Accordion>
-
-                {/* 5. Abono de Permanência (Green) - Moved to End */}
-                <Accordion
-                  title={<h4 className="text-sm font-bold text-green-800">Abono de Permanência</h4>}
-                  className="bg-green-50/50 rounded-lg border border-green-100"
-                  headerClassName="p-3"
-                  contentClassName="p-3 pt-0 border-t border-green-100/50"
-                  defaultOpen={false}
-                >
-                  <div className="flex items-start gap-2 mb-2">
-                    <input type="checkbox" className="mt-1 rounded text-green-600 focus:ring-green-500" checked={state.recebeAbono} onChange={e => update('recebeAbono', e.target.checked)} />
-                    <div>
-                      <label className="text-sm font-medium text-gray-900">Recebo Abono de Permanência?</label>
-                      <p className="text-[10px] text-gray-500 mt-0.5">Igual ao PSS. Calculado automaticamente.</p>
-                    </div>
-                  </div>
-                  <Input label="" value={formatCurrency(state.abonoPermanencia)} readOnly className="!bg-white !text-green-700 !font-bold" />
-                </Accordion>
-
               </div>
-            </Card>
-          </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">FC / CJ</label>
+                <select className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm" value={state.funcao} onChange={e => update('funcao', e.target.value)}>
+                  <option value="0">Sem Função / Manual</option>
+                  {Object.keys(currentTables.funcoes).map(f => (
+                    <option key={f} value={f}>{f.toUpperCase()} - {formatCurrency(currentTables.funcoes[f])}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
+            {/* AQ Section */}
+            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 mb-4 border border-slate-100 dark:border-slate-700">
+              <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-3 flex justify-between">
+                Adicional Qualificação
+                <span className="text-[10px] bg-secondary/10 text-secondary px-2 py-0.5 rounded-full">{isNovoAQ ? 'LEI 15.292/2026' : 'REGRA ATUAL'}</span>
+              </h4>
 
-
-
-
-          {/* Column 2: Variáveis, HE e Licença */}
-          <div className="space-y-6">
-            <Card
-              title="Rendimentos Variáveis"
-              icon={<Clock className="h-5 w-5" />}
-              headerColorClass="bg-purple-50 border-purple-100"
-              borderColorClass="border-purple-100"
-              iconColorClass="text-purple-600"
-              titleColorClass="text-purple-800"
-            >
-              {/* FERIAS */}
-              <Accordion
-                title={
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-blue-500">Férias</h3>
+              {isNovoAQ ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-slate-500 block mb-1">Títulos (Base: VR)</label>
+                    <select className="w-full rounded-lg border-slate-200 text-sm py-1.5" value={state.aqTituloVR} onChange={e => update('aqTituloVR', Number(e.target.value))}>
+                      <option value={0}>Nenhum</option>
+                      <option value={1}>1x Esp. (1 VR)</option>
+                      <option value={2}>2x Esp. (2 VR)</option>
+                      <option value={3.5}>Mestrado (3.5 VR)</option>
+                      <option value={5}>Doutorado (5 VR)</option>
+                    </select>
                   </div>
-                }
-                className="bg-white rounded-lg border border-orange-200 overflow-hidden relative mb-4"
-                headerClassName="p-4"
-                contentClassName="p-4 pt-0 border-t border-orange-50"
-                defaultOpen={false}
-              >
-                <div className="mb-4">
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="text-xs font-medium text-gray-700">Adicional 1/3 Férias</label>
-                    <label className="flex items-center gap-1 text-[10px] text-red-500 font-bold cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={state.manualFerias}
-                        onChange={e => update('manualFerias', e.target.checked)}
-                      /> Editar manualmente
-                    </label>
+                  <div>
+                    <label className="text-xs text-slate-500 block mb-1">Treinamento</label>
+                    <select className="w-full rounded-lg border-slate-200 text-sm py-1.5" value={state.aqTreinoVR} onChange={e => update('aqTreinoVR', Number(e.target.value))}>
+                      <option value={0}>0h</option>
+                      <option value={0.2}>120h (0.2 VR)</option>
+                      <option value={0.4}>240h (0.4 VR)</option>
+                      <option value={0.6}>360h (0.6 VR)</option>
+                    </select>
                   </div>
-                  <div className="relative mb-2">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">R$</span>
-                    <input
-                      type="text"
-                      className={`form-input w-full pl-9 rounded-md border-gray-200 text-sm focus:border-primary focus:ring-primary ${!state.manualFerias ? 'bg-gray-50 text-gray-600 font-medium' : 'bg-white'}`}
-                      value={state.ferias1_3.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      onChange={e => {
-                        if (!state.manualFerias) return;
-                        const raw = e.target.value.replace(/\D/g, '');
-                        update('ferias1_3', Number(raw) / 100);
-                      }}
-                      readOnly={!state.manualFerias}
-                    />
-                  </div>
-                  <button
-                    onClick={handleCalcFerias}
-                    className="w-full bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-bold px-3 py-1.5 rounded shadow-sm transition-colors uppercase"
-                  >
-                    Calcular 1/3 Automático
-                  </button>
                 </div>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-slate-500 block mb-1">Títulos (Base: VB)</label>
+                    <select className="w-full rounded-lg border-slate-200 text-sm py-1.5" value={state.aqTituloPerc} onChange={e => update('aqTituloPerc', Number(e.target.value))}>
+                      <option value={0}>Nenhum</option>
+                      <option value={0.05}>Graduação (5%)</option>
+                      <option value={0.075}>Especialização (7.5%)</option>
+                      <option value={0.10}>Mestrado (10%)</option>
+                      <option value={0.125}>Doutorado (12.5%)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 block mb-1">Treinamento</label>
+                    <select className="w-full rounded-lg border-slate-200 text-sm py-1.5" value={state.aqTreinoPerc} onChange={e => update('aqTreinoPerc', Number(e.target.value))}>
+                      <option value={0}>0h</option>
+                      <option value={0.01}>120h (1%)</option>
+                      <option value={0.02}>240h (2%)</option>
+                      <option value={0.03}>360h (3%)</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
 
-                <div className="bg-orange-50 p-3 rounded-lg border border-orange-100">
-                  <label className="flex items-center gap-2 text-sm font-bold text-orange-800">
-                    <input type="checkbox" checked={state.feriasAntecipadas} onChange={e => update('feriasAntecipadas', e.target.checked)} className="rounded border-orange-300 text-orange-600 focus:ring-orange-500" />
-                    Recebi o dinheiro no mês passado?
+            {/* Accordions for Extras */}
+            <div className="space-y-2">
+              <Accordion title="Gratificação (GAE/GAS)" className="bg-amber-50 rounded-lg" headerClassName="px-4 py-3 text-amber-900 font-bold text-sm" contentClassName="px-4 py-3 border-t border-amber-100">
+                <select className="w-full rounded border-amber-200 text-sm mb-2" value={state.gratEspecificaTipo} onChange={e => update('gratEspecificaTipo', e.target.value)}>
+                  <option value="0">Nenhuma</option>
+                  <option value="gae">GAE (Oficial de Justiça)</option>
+                  <option value="gas">GAS (Agente de Polícia)</option>
+                </select>
+                <label className="flex items-center gap-2 text-xs text-amber-900">
+                  <input type="checkbox" checked={state.incidirPSSGrat} onChange={e => update('incidirPSSGrat', e.target.checked)} className="rounded text-amber-600" />
+                  Incidir PSS?
+                </label>
+              </Accordion>
+
+              <Accordion title="Vantagens Pessoais" className="bg-rose-50 rounded-lg" headerClassName="px-4 py-3 text-rose-900 font-bold text-sm" contentClassName="px-4 py-3 border-t border-rose-100 space-y-2">
+                <div>
+                  <label className="text-[10px] text-rose-800 uppercase font-bold">VPNI (Lei 9.527)</label>
+                  <input type="number" className="w-full rounded border-rose-200 text-sm" value={state.vpni_lei} onChange={e => update('vpni_lei', Number(e.target.value))} />
+                </div>
+                <div>
+                  <label className="text-[10px] text-rose-800 uppercase font-bold">VPNI (Decisão)</label>
+                  <input type="number" className="w-full rounded border-rose-200 text-sm" value={state.vpni_decisao} onChange={e => update('vpni_decisao', Number(e.target.value))} />
+                </div>
+                <div>
+                  <label className="text-[10px] text-rose-800 uppercase font-bold">ATS (Anuênios)</label>
+                  <input type="number" className="w-full rounded border-rose-200 text-sm" value={state.ats} onChange={e => update('ats', Number(e.target.value))} />
+                </div>
+              </Accordion>
+
+              <Accordion title="Abono de Permanência" className="bg-green-50 rounded-lg" headerClassName="px-4 py-3 text-green-900 font-bold text-sm" contentClassName="px-4 py-3 border-t border-green-100">
+                <label className="flex items-center gap-2 text-sm text-green-900 cursor-pointer">
+                  <input type="checkbox" checked={state.recebeAbono} onChange={e => update('recebeAbono', e.target.checked)} className="rounded text-green-600" />
+                  Recebo Abono?
+                </label>
+                {state.recebeAbono && <p className="text-xs text-green-700 mt-1 font-bold">Valor: {formatCurrency(state.abonoPermanencia)}</p>}
+              </Accordion>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Column 2: Variable Earnings */}
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 card-shadow">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+              <span className="material-symbols-outlined text-lg">add_circle</span>Rendimentos Variáveis
+            </h3>
+
+            <div className="space-y-3">
+
+              {/* Férias */}
+              <Accordion title="Férias" className="bg-white border border-slate-200 rounded-xl" headerClassName="px-4 py-3 font-bold text-sm text-slate-700" contentClassName="p-4 border-t border-slate-100">
+                <label className="flex items-center gap-2 mb-3 text-xs font-bold text-secondary uppercase cursor-pointer">
+                  <input type="checkbox" checked={state.manualFerias} onChange={e => update('manualFerias', e.target.checked)} className="rounded text-secondary" />
+                  Editar Valor
+                </label>
+                <input
+                  className={`w-full rounded-lg border-slate-200 text-sm mb-3 ${state.manualFerias ? 'bg-white' : 'bg-slate-50 text-slate-500'}`}
+                  value={state.ferias1_3}
+                  onChange={e => update('ferias1_3', Number(e.target.value))}
+                  readOnly={!state.manualFerias}
+                  type="number"
+                />
+                <button onClick={handleCalcFerias} className="w-full bg-secondary/10 text-secondary text-xs font-bold py-2 rounded-lg hover:bg-secondary/20 transition mb-3">
+                  Calcular 1/3 Automático
+                </button>
+                <label className="flex items-center gap-2 text-xs text-slate-600">
+                  <input type="checkbox" checked={state.feriasAntecipadas} onChange={e => update('feriasAntecipadas', e.target.checked)} className="rounded text-secondary" />
+                  Recebi mês passado? (Desconto)
+                </label>
+              </Accordion>
+
+              {/* 13º Salário */}
+              <Accordion title="13º Salário (Adiantamento)" className="bg-white border border-slate-200 rounded-xl" headerClassName="px-4 py-3 font-bold text-sm text-slate-700" contentClassName="p-4 border-t border-slate-100">
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold uppercase">Vencimento</label>
+                    <input type="number" className="w-full rounded border-slate-200 text-sm" value={state.adiant13Venc} onChange={e => update('adiant13Venc', Number(e.target.value))} readOnly={!state.manualAdiant13} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold uppercase">FC/CJ</label>
+                    <input type="number" className="w-full rounded border-slate-200 text-sm" value={state.adiant13FC} onChange={e => update('adiant13FC', Number(e.target.value))} readOnly={!state.manualAdiant13} />
+                  </div>
+                </div>
+                <button onClick={handleCalc13Manual} className="w-full bg-slate-100 text-slate-600 text-xs font-bold py-2 rounded-lg hover:bg-slate-200 transition">
+                  Calcular Automático
+                </button>
+                <div className="mt-3 flex gap-2">
+                  <label className="text-xs flex items-center gap-1 cursor-pointer">
+                    <input type="checkbox" checked={state.manualAdiant13} onChange={e => update('manualAdiant13', e.target.checked)} className="rounded text-secondary" />
+                    Manual
                   </label>
                 </div>
               </Accordion>
 
-              {/* 13 SALARIO */}
-              <Accordion
-                title={<h3 className="text-sm font-bold text-blue-500">13º Salário</h3>}
-                className="bg-white rounded-lg border border-blue-200 overflow-hidden relative mb-4"
-                headerClassName="p-4"
-                contentClassName="p-4 pt-0 border-t border-blue-50"
-                defaultOpen={false}
-              >
-                <div className="flex justify-end mb-4">
-                  <button onClick={handleCalc13Manual} className="w-full bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-bold py-1.5 px-3 rounded shadow-sm transition-colors uppercase">
-                    Calcular 13º Automático
-                  </button>
-                </div>
-
-                <div className="pt-0">
-                  <div className="flex justify-between items-center mb-2">
-                    <h5 className="text-xs font-bold text-blue-800">Adiantamento 13º (Janeiro/Junho)</h5>
-                    <label className="flex items-center gap-1 text-[10px] text-red-500 font-bold cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={state.manualAdiant13}
-                        onChange={e => update('manualAdiant13', e.target.checked)}
-                      /> Editar manualmente
-                    </label>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-gray-500">Adiant. Ativo EC (Base)</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">R$</span>
-                        <input
-                          type="text"
-                          className={`form-input w-full pl-9 rounded-md border-gray-200 text-sm focus:border-primary focus:ring-primary ${!state.manualAdiant13 ? 'bg-gray-50 text-gray-600 font-medium' : 'bg-white'}`}
-                          value={state.adiant13Venc.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          onChange={(e) => {
-                            if (!state.manualAdiant13) return;
-                            const raw = e.target.value.replace(/\D/g, '');
-                            update('adiant13Venc', Number(raw) / 100);
-                          }}
-                          readOnly={!state.manualAdiant13}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-gray-500">Adiant. FC/CJ (Função)</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">R$</span>
-                        <input
-                          type="text"
-                          className={`form-input w-full pl-9 rounded-md border-gray-200 text-sm focus:border-primary focus:ring-primary ${!state.manualAdiant13 ? 'bg-gray-50 text-gray-600 font-medium' : 'bg-white'}`}
-                          value={state.adiant13FC.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          onChange={(e) => {
-                            if (!state.manualAdiant13) return;
-                            const raw = e.target.value.replace(/\D/g, '');
-                            update('adiant13FC', Number(raw) / 100);
-                          }}
-                          readOnly={!state.manualAdiant13}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Accordion>
-              <Accordion
-                title={<h4 className="text-sm font-bold text-purple-800">Horas Extras</h4>}
-                className="border border-purple-200 rounded-lg bg-purple-50/50"
-                headerClassName="p-4"
-                contentClassName="p-4 pt-0 border-t border-purple-100/50"
-                defaultOpen={false}
-              >
+              {/* Horas Extras */}
+              <Accordion title="Horas Extras" className="bg-white border border-slate-200 rounded-xl" headerClassName="px-4 py-3 font-bold text-sm text-slate-700" contentClassName="p-4 border-t border-slate-100">
                 <div className="flex items-center justify-between mb-3">
                   <label className="flex items-center gap-2 text-xs">
-                    <input type="checkbox" checked={state.heIsEA} onChange={e => update('heIsEA', e.target.checked)} className="rounded text-purple-600 focus:ring-purple-500" />
-                    <span className="text-gray-700">Pagamento como EA?</span>
+                    <input type="checkbox" checked={state.heIsEA} onChange={e => update('heIsEA', e.target.checked)} className="rounded text-secondary" />
+                    Pagamento como EA?
                   </label>
-                  <label className="flex items-center gap-2 text-xs">
-                    <input type="checkbox" checked={state.manualBaseHE} onChange={e => update('manualBaseHE', e.target.checked)} className="rounded text-purple-600 focus:ring-purple-500" />
-                    <span className="text-gray-700">Editar manualmente</span>
+                  <label className="flex items-center gap-2 text-xs font-bold text-secondary uppercase cursor-pointer">
+                    <input type="checkbox" checked={state.manualBaseHE} onChange={e => update('manualBaseHE', e.target.checked)} className="rounded text-secondary" />
+                    Editar manualmente
                   </label>
                 </div>
 
                 <div className="mb-3">
-                  <label className="text-xs text-gray-500 block mb-1">Base de Cálculo HE</label>
+                  <label className="text-[10px] text-slate-400 font-bold block mb-1">Base de Cálculo HE</label>
                   <input
-                    type="text"
-                    className={`form-input w-full rounded-md border-purple-200 text-sm focus:ring-purple-500 ${state.manualBaseHE ? 'bg-yellow-50' : 'bg-gray-100'}`}
-                    value={state.manualBaseHE
-                      ? state.heBase.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                      : formatCurrency(state.heBase).replace('R$', '').trim()}
-                    onChange={e => {
-                      if (state.manualBaseHE) {
-                        const raw = e.target.value.replace(/\D/g, '');
-                        update('heBase', Number(raw) / 100);
-                      }
-                    }}
-                    readOnly={!state.manualBaseHE}
+                    type="number"
+                    className={`w-full rounded-lg border-slate-200 text-sm ${state.manualBaseHE ? 'bg-white' : 'bg-slate-50 text-slate-500'}`}
+                    value={state.heBase || ''}
+                    disabled={!state.manualBaseHE}
+                    onChange={e => update('heBase', Number(e.target.value))}
                   />
-
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 mb-1">
-                  <Input label="Qtd. HE 50%" type="number" value={state.heQtd50} onChange={e => update('heQtd50', Number(e.target.value))} className="bg-white" />
-                  <Input label="Valor 50%" value={formatCurrency(state.heVal50)} readOnly className="bg-gray-50 text-gray-600" />
-                </div>
                 <div className="grid grid-cols-2 gap-3 mb-3">
-                  <Input label="Qtd. HE 100%" type="number" value={state.heQtd100} onChange={e => update('heQtd100', Number(e.target.value))} className="bg-white" />
-                  <Input label="Valor 100%" value={formatCurrency(state.heVal100)} readOnly className="bg-gray-50 text-gray-600" />
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold block mb-1">Qtd 50%</label>
+                    <input type="number" className="w-full rounded border-slate-200 text-sm" value={state.heQtd50} onChange={e => update('heQtd50', Number(e.target.value))} />
+                    <div className="text-xs text-slate-500 mt-1">{formatCurrency(state.heVal50)}</div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold block mb-1">Qtd 100%</label>
+                    <input type="number" className="w-full rounded border-slate-200 text-sm" value={state.heQtd100} onChange={e => update('heQtd100', Number(e.target.value))} />
+                    <div className="text-xs text-slate-500 mt-1">{formatCurrency(state.heVal100)}</div>
+                  </div>
                 </div>
-                <div className="text-right text-xs font-bold text-purple-700 bg-purple-100 p-2 rounded">Total HE: {formatCurrency(state.heTotal)}</div>
+
+                <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
+                  <span className="text-xs font-bold text-slate-500">Total HE</span>
+                  <span className="text-sm font-bold text-slate-700">{formatCurrency(state.heTotal)}</span>
+                </div>
               </Accordion>
 
-              {/* Substitution Grid */}
-              <Accordion
-                title={<h4 className="text-sm font-bold text-orange-800">Substituição</h4>}
-                className="border border-orange-200 rounded-lg bg-orange-50/50"
-                headerClassName="p-4"
-                contentClassName="p-4 pt-0 border-t border-orange-100/50"
-                defaultOpen={false}
-              >
+              {/* Substituição RESTORED */}
+              <Accordion title="Substituição" className="bg-white border border-slate-200 rounded-xl" headerClassName="px-4 py-3 font-bold text-sm text-orange-700" contentClassName="p-4 border-t border-slate-100">
                 <label className="flex items-center gap-2 text-xs mb-3">
                   <input type="checkbox" checked={state.substIsEA} onChange={e => update('substIsEA', e.target.checked)} className="rounded text-orange-500 focus:ring-orange-500" />
-                  <span className="text-gray-700">Pagamento como EA?</span>
+                  <span className="text-slate-700">Pagamento como EA?</span>
                 </label>
-                <p className="text-[10px] text-gray-500 mb-2 font-medium">Abatendo sua FC/CJ atual</p>
 
                 <div className="grid grid-cols-2 gap-y-2 gap-x-4">
                   {['fc1', 'fc2', 'fc3', 'fc4', 'fc5', 'fc6', 'cj1', 'cj2', 'cj3', 'cj4'].map(key => (
                     <div key={key} className="flex items-center justify-between text-xs">
-                      <span className="text-gray-600 w-8 uppercase">{key.replace(/(\d+)/, '-$1')}</span>
+                      <span className="text-slate-600 w-8 uppercase">{key.replace(/(\d+)/, '-$1')}</span>
                       <div className="flex items-center">
                         <input
                           type="number"
                           placeholder="Dias"
-                          className="w-16 h-7 rounded border-gray-200 bg-white text-xs text-center focus:ring-orange-500 focus:border-orange-500"
+                          className="w-16 h-7 rounded border-slate-200 bg-white text-xs text-center focus:ring-orange-500 focus:border-orange-500"
                           value={state.substDias[key] || ''}
                           onChange={e => updateSubstDays(key, Number(e.target.value))}
                         />
@@ -930,23 +701,15 @@ export default function Calculator() {
                     </div>
                   ))}
                 </div>
-                <div className="text-right text-xs font-bold text-orange-600 mt-3">Total Subst.: {formatCurrency(state.substTotal)}</div>
+                <div className="text-right text-xs font-bold text-orange-600 mt-3">Total Estimado: {formatCurrency(state.substTotal)}</div>
               </Accordion>
 
-              <Accordion
-                title={<h4 className="text-sm font-bold text-teal-800">Licença Compensatória</h4>}
-                className="border border-teal-200 rounded-lg bg-teal-50/50"
-                headerClassName="p-4"
-                contentClassName="p-4 pt-0 border-t border-teal-100/50"
-                defaultOpen={false}
-              >
-                <p className="text-[10px] text-gray-500 mb-3 italic leading-tight">
-                  Pago a ocupantes de CJ-2 a CJ-4. Art. 4º Ato Normativo 899.
-                </p>
+              {/* Licença Compensatória RESTORED */}
+              <Accordion title="Licença Compensatória" className="bg-white border border-slate-200 rounded-xl" headerClassName="px-4 py-3 font-bold text-sm text-teal-700" contentClassName="p-4 border-t border-slate-100">
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs text-gray-500 block mb-1">Função Base</label>
-                    <select className="form-select w-full rounded-md border-gray-200 bg-white text-xs" value={state.baseLicenca} onChange={e => update('baseLicenca', e.target.value)}>
+                    <label className="text-xs text-slate-500 block mb-1">Função Base</label>
+                    <select className="w-full rounded-md border-slate-200 bg-white text-xs" value={state.baseLicenca} onChange={e => update('baseLicenca', e.target.value)}>
                       <option value="auto">Minha Função Atual (Titular)</option>
                       <option value="cj4">Substituição de CJ-4</option>
                       <option value="cj3">Substituição de CJ-3</option>
@@ -957,63 +720,138 @@ export default function Calculator() {
                   </div>
                   <label className="flex items-start gap-2 text-xs">
                     <input type="checkbox" checked={state.incluirAbonoLicenca} onChange={e => update('incluirAbonoLicenca', e.target.checked)} className="rounded text-teal-600 mt-0.5" />
-                    <span className="text-gray-700">Incluir Abono na Base? (ATN 899 Art 4º)</span>
+                    <span className="text-slate-700">Incluir Abono na Base?</span>
                   </label>
-                  <Input label="Qtd. Dias a Indenizar (Máx 4 por mês)" type="number" value={state.licencaDias} onChange={e => update('licencaDias', Number(e.target.value))} className="bg-white" />
+                  <div>
+                    <label className="text-[10px] text-slate-500 block mb-1">Qtd. Dias a Indenizar</label>
+                    <input type="number" value={state.licencaDias} onChange={e => update('licencaDias', Number(e.target.value))} className="w-full rounded border-slate-200" />
+                  </div>
                 </div>
-                <div className="mt-3 bg-teal-100 p-2 rounded flex justify-between items-center">
-                  <span className="text-xs font-medium text-teal-800">Valor Estimado (Isento IR/PSS)</span>
+                <div className="mt-3 bg-teal-50 p-2 rounded flex justify-between items-center border border-teal-100">
+                  <span className="text-xs font-medium text-teal-800">Total (Isento)</span>
                   <span className="text-sm font-bold text-teal-700">{formatCurrency(state.licencaValor)}</span>
                 </div>
               </Accordion>
 
-              {/* Auxilio Alimentacao & Transporte - New Design */}
-              <div className="space-y-4 pt-2">
+              {/* Diárias de Viagem */}
+              <Accordion title="Diárias de Viagem" className="bg-white border border-slate-200 rounded-xl" headerClassName="px-4 py-3 font-bold text-sm text-indigo-700" contentClassName="p-4 border-t border-slate-100">
+                <div className="mb-4 text-center">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Quantidade de Diárias</label>
+                  <input type="number" step="0.5" className="w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value={state.diariasQtd} onChange={e => update('diariasQtd', Number(e.target.value))} />
+                </div>
 
-                <Accordion
-                  title={<h4 className="text-sm font-bold text-blue-700">Auxílio Alimentação</h4>}
-                  className="bg-white rounded-lg border border-gray-200 shadow-sm"
-                  headerClassName="p-4"
-                  contentClassName="p-4 pt-0 border-t border-gray-100"
-                  defaultOpen={false}
-                >
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">R$</span>
-                    {/* Select mimicking input style */}
-                    <select
-                      className="form-select w-full pl-9 rounded-md border-gray-200 bg-gray-50 text-gray-600 text-sm font-medium focus:border-primary focus:ring-primary appearance-none"
-                      value={state.auxAlimentacao}
-                      onChange={e => update('auxAlimentacao', Number(e.target.value))}
-                    >
-                      {courtConfig?.menus?.food_allowance ? (
-                        courtConfig.menus.food_allowance.map((opt) => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))
-                      ) : (
-                        <>
-                          <option value={1784.42}>1.784,42 (Atual)</option>
-                          <option value={1460.40}>1.460,40</option>
-                          <option value={1300.00}>1.300,00</option>
-                          <option value={1235.77}>1.235,77</option>
-                        </>
-                      )}
-                    </select>
+                <div className="mb-4">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Adicional de Embarque</label>
+                  <select className="w-full rounded-lg border-slate-200 text-sm" value={state.diariasEmbarque} onChange={e => update('diariasEmbarque', e.target.value)}>
+                    <option value="nao">Não</option>
+                    <option value="metade">Ida OU Volta (50%)</option>
+                    <option value="completo">Ida E Volta (100%)</option>
+                  </select>
+                </div>
+
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 mb-4">
+                  <p className="text-xs font-bold text-indigo-800 mb-2">Abatimentos (Art. 4º)</p>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                      <input type="checkbox" checked={state.diariasExtHospedagem} onChange={e => update('diariasExtHospedagem', e.target.checked)} className="rounded text-indigo-600" />
+                      Hospedagem (55%)
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                      <input type="checkbox" checked={state.diariasExtAlimentacao} onChange={e => update('diariasExtAlimentacao', e.target.checked)} className="rounded text-indigo-600" />
+                      Alimentação (25%)
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                      <input type="checkbox" checked={state.diariasExtTransporte} onChange={e => update('diariasExtTransporte', e.target.checked)} className="rounded text-indigo-600" />
+                      Transporte (20%)
+                    </label>
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-xs text-slate-500">
+                    <input type="checkbox" checked={state.diariasDescontarAlimentacao} onChange={e => update('diariasDescontarAlimentacao', e.target.checked)} className="rounded text-slate-400" />
+                    Restituir Aux. Alimentação?
+                  </label>
+                  <label className="flex items-center gap-2 text-xs text-slate-500">
+                    <input type="checkbox" checked={state.diariasDescontarTransporte} onChange={e => update('diariasDescontarTransporte', e.target.checked)} className="rounded text-slate-400" />
+                    Restituir Aux. Transporte?
+                  </label>
+                </div>
+
+                {state.diariasValorTotal > 0 && (
+                  <div className="mt-4 bg-indigo-50/50 rounded-lg p-3 border border-indigo-100">
+                    <h5 className="text-xs font-bold text-indigo-800 mb-2 uppercase border-b border-indigo-200 pb-1">Extrato Estimado</h5>
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between text-slate-600">
+                        <span>(+) Diárias (Bruto)</span>
+                        <span>{formatCurrency(state.diariasBruto - (state.diariasEmbarque === 'completo' ? 586.78 : state.diariasEmbarque === 'metade' ? 293.39 : 0))}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-600">
+                        <span>(+) Adicional de Embarque</span>
+                        <span>{formatCurrency(state.diariasEmbarque === 'completo' ? 586.78 : state.diariasEmbarque === 'metade' ? 293.39 : 0)}</span>
+                      </div>
+
+                      {/* Estimate of External Deduction (Glosa) */}
+                      {(state.diariasExtHospedagem || state.diariasExtAlimentacao || state.diariasExtTransporte) && (
+                        <div className="flex justify-between text-rose-600">
+                          <span>(-) Abatimento Benef. Externo</span>
+                          <span>- {formatCurrency(state.diariasBruto - state.diariasValorTotal - state.diariasDescAlim - state.diariasDescTransp).replace('R$', '').trim()}</span>
+                        </div>
+                      )}
+
+                      {state.diariasDescontarAlimentacao && (
+                        <div className="flex justify-between text-rose-600">
+                          <span>(-) Restituição Aux. Alimentação</span>
+                          <span>- {formatCurrency(state.diariasDescAlim)}</span>
+                        </div>
+                      )}
+                      {state.diariasDescontarTransporte && (
+                        <div className="flex justify-between text-rose-600">
+                          <span>(-) Restituição Aux. Transporte</span>
+                          <span>- {formatCurrency(state.diariasDescTransp)}</span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between text-indigo-900 font-bold pt-2 border-t border-indigo-200 mt-2 text-sm">
+                        <span>(=) Total Líquido Diárias</span>
+                        <span>{formatCurrency(state.diariasValorTotal)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </Accordion>
+
+              {/* Auxílios Combined & Detailed */}
+              <div className="space-y-2">
+                {/* Alimentação */}
+                <Accordion title="Auxílio Alimentação" className="bg-white border border-slate-200 rounded-xl" headerClassName="px-4 py-3 font-bold text-sm text-blue-700" contentClassName="p-4 border-t border-slate-100">
+                  <select
+                    className="w-full rounded border-slate-200 text-sm mb-2"
+                    value={state.auxAlimentacao}
+                    onChange={e => update('auxAlimentacao', Number(e.target.value))}
+                  >
+                    {courtConfig?.menus?.food_allowance ? (
+                      courtConfig.menus.food_allowance.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))
+                    ) : (
+                      <>
+                        <option value={1784.42}>1.784,42 (Atual)</option>
+                        <option value={1460.40}>1.460,40</option>
+                        <option value={1300.00}>1.300,00</option>
+                        <option value={1235.77}>1.235,77</option>
+                      </>
+                    )}
+                  </select>
                 </Accordion>
 
-                <Accordion
-                  title={<h4 className="text-sm font-bold text-blue-700">Auxílio Pré-Escolar</h4>}
-                  className="bg-white rounded-lg border border-gray-200 shadow-sm"
-                  headerClassName="p-4"
-                  contentClassName="p-4 pt-0 border-t border-gray-100"
-                  defaultOpen={false}
-                >
-                  <div className="mb-3">
-                    <label className="text-[10px] text-gray-500 block mb-1">Cota Base (p/ Dep.)</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">R$</span>
+                {/* Pré-Escolar */}
+                <Accordion title="Auxílio Pré-Escolar" className="bg-white border border-slate-200 rounded-xl" headerClassName="px-4 py-3 font-bold text-sm text-blue-700" contentClassName="p-4 border-t border-slate-100">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] text-slate-500 block mb-1">Cota</label>
                       <select
-                        className="form-select w-full pl-9 rounded-md border-gray-200 bg-gray-50 text-gray-600 text-sm font-medium focus:border-primary focus:ring-primary appearance-none"
+                        className="w-full rounded border-slate-200 text-xs"
                         value={state.cotaPreEscolar}
                         onChange={e => update('cotaPreEscolar', Number(e.target.value))}
                       >
@@ -1025,549 +863,335 @@ export default function Calculator() {
                           <>
                             <option value={1235.77}>1.235,77 (Atual)</option>
                             <option value={1178.82}>1.178,82</option>
-                            <option value={935.22}>935,22</option>
                           </>
                         )}
                       </select>
                     </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 block mb-1">Qtd</label>
+                      <input className="w-full rounded border-slate-200 text-xs text-center" type="number" value={state.auxPreEscolarQtd} onChange={e => update('auxPreEscolarQtd', Number(e.target.value))} />
+                    </div>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[10px] text-gray-500 block mb-1">Qtd. Dependentes</label>
-                      <input className="form-input w-full rounded-md border-gray-200 bg-white text-sm text-center" type="number" value={state.auxPreEscolarQtd} onChange={e => update('auxPreEscolarQtd', Number(e.target.value))} />
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-gray-500 block mb-1">Valor Total</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">R$</span>
-                        <input
-                          className="form-input w-full pl-9 rounded-md border-gray-200 bg-gray-50 text-gray-600 text-sm font-medium"
-                          readOnly
-                          type="text"
-                          value={state.auxPreEscolarValor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        />
-                      </div>
-                    </div>
+                  <div className="mt-2 text-right">
+                    <span className="text-xs font-bold text-blue-800">Total: {formatCurrency(state.auxPreEscolarValor)}</span>
                   </div>
                 </Accordion>
 
-                <Accordion
-                  title={<h4 className="text-sm font-bold text-blue-700">Auxílio Transporte</h4>}
-                  className="bg-white rounded-lg border border-gray-200 shadow-sm"
-                  headerClassName="p-4"
-                  contentClassName="p-4 pt-0 border-t border-gray-100"
-                  defaultOpen={false}
-                >
-                  <div className="mb-2">
-                    <label className="text-[10px] text-gray-500 block mb-1">Valor Mensal do Transporte (Gasto Total)</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">R$</span>
-                      <input
-                        className="form-input w-full pl-9 rounded-md border-gray-200 bg-white text-sm focus:border-primary focus:ring-primary"
-                        type="number"
-                        value={state.auxTransporteGasto}
-                        onChange={e => update('auxTransporteGasto', Number(e.target.value))}
-                      />
-                    </div>
-                  </div>
+                {/* Transporte */}
+                <Accordion title="Auxílio Transporte" className="bg-white border border-slate-200 rounded-xl" headerClassName="px-4 py-3 font-bold text-sm text-blue-700" contentClassName="p-4 border-t border-slate-100">
+                  <label className="text-[10px] text-slate-500 block mb-1">Valor Mensal (Gasto)</label>
+                  <input
+                    className="w-full rounded border-slate-200 text-sm"
+                    type="number"
+                    value={state.auxTransporteGasto}
+                    onChange={e => update('auxTransporteGasto', Number(e.target.value))}
+                  />
                   {state.auxTransporteGasto > 0 && state.auxTransporteValor === 0 && (
-                    <p className="text-[10px] text-red-500 mt-1 font-bold">Benefício cancelado (Desconto &gt; Gasto).</p>
-                  )}
-                </Accordion>
-
-                {/* Diárias de Viagem (Novo Módulo) */}
-                <Accordion
-                  title={<h4 className="text-sm font-bold text-indigo-700">Diárias de Viagem</h4>}
-                  className="bg-white rounded-lg border border-indigo-200 shadow-sm"
-                  headerClassName="p-4"
-                  contentClassName="p-4 pt-0 border-t border-indigo-100"
-                  defaultOpen={false}
-                >
-                  {/* Info Header */}
-                  <div className="bg-indigo-50 p-2 rounded mb-3 border border-indigo-100">
-                    <p className="text-[10px] text-indigo-800 font-medium">
-                      Valor Base: <span className="font-bold">
-                        {state.funcao && state.funcao.toLowerCase().startsWith('cj')
-                          ? 'R$ 880,17 (CJ)'
-                          : state.cargo === 'analista'
-                            ? 'R$ 806,82 (Analista)'
-                            : 'R$ 660,13 (Técnico)'}
-                      </span>
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col items-center mb-4 w-full">
-                    <Input
-                      label="Qtd. Diárias (com pernoite e sem pernoite)"
-                      labelClassName="text-center font-bold mb-1 block w-full"
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      value={state.diariasQtd}
-                      onChange={e => update('diariasQtd', Number(e.target.value))}
-                      className="bg-white text-center w-32 text-sm font-medium mx-auto border-gray-300 focus:border-blue-500 focus:ring-blue-500 block shadow-sm"
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="text-[10px] text-gray-500 block mb-1">Adicional de Embarque</label>
-                    <Select
-                      label=""
-                      value={state.diariasEmbarque}
-                      onChange={e => update('diariasEmbarque', e.target.value)}
-                      className="bg-white"
-                    >
-                      <option value="nao">Não (R$ 0,00)</option>
-                      <option value="metade">Ida OU Volta (50% - R$ 293,39)</option>
-                      <option value="completo">Ida E Volta (100% - R$ 586,78)</option>
-                    </Select>
-                  </div>
-
-                  {/* Benefício Externo (Art. 4) */}
-                  <div className="mb-4 bg-gray-50 p-2 rounded border border-gray-100 space-y-2">
-                    <p className="text-[11px] text-gray-700 font-medium leading-tight">
-                      Recebi para este deslocamento hospedagem, alimentação ou transporte? (art. 4º do Ato Normativo 799/2024)
-                    </p>
-                    <div className="flex items-center gap-4">
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="beneficioExterno"
-                          checked={state.diariasExtHospedagem || state.diariasExtAlimentacao || state.diariasExtTransporte}
-                          onChange={() => {/* No-op or auto-focus? */ }}
-                          className="text-indigo-600 focus:ring-indigo-500"
-                        />
-                        <span className="text-xs text-gray-700">Sim</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="beneficioExterno"
-                          checked={!state.diariasExtHospedagem && !state.diariasExtAlimentacao && !state.diariasExtTransporte}
-                          onChange={() => {
-                            update('diariasExtHospedagem', false);
-                            update('diariasExtAlimentacao', false);
-                            update('diariasExtTransporte', false);
-                          }}
-                          className="text-indigo-600 focus:ring-indigo-500"
-                        />
-                        <span className="text-xs text-gray-700">Não</span>
-                      </label>
-                    </div>
-
-                    <div className="mt-2 pl-2 border-l-2 border-indigo-200 space-y-1">
-                      <p className="text-[10px] text-indigo-700 font-bold mb-1">Qual benefício recebi? (Marque todos que se aplicam)</p>
-                      <div className="space-y-1">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={state.diariasExtHospedagem}
-                            onChange={e => update('diariasExtHospedagem', e.target.checked)}
-                            className="rounded text-indigo-600 focus:ring-indigo-500"
-                          />
-                          <span className="text-xs text-gray-600">Hospedagem (Abate 55%)</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={state.diariasExtAlimentacao}
-                            onChange={e => update('diariasExtAlimentacao', e.target.checked)}
-                            className="rounded text-indigo-600 focus:ring-indigo-500"
-                          />
-                          <span className="text-xs text-gray-600">Alimentação (Abate 25%)</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={state.diariasExtTransporte}
-                            onChange={e => update('diariasExtTransporte', e.target.checked)}
-                            className="rounded text-indigo-600 focus:ring-indigo-500"
-                          />
-                          <span className="text-xs text-gray-600">Transporte (Abate 20%)</span>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 bg-gray-50 p-2 rounded border border-gray-100">
-                    <label className="flex items-center gap-2 text-xs">
-                      <input
-                        type="checkbox"
-                        checked={state.diariasDescontarAlimentacao}
-                        onChange={e => update('diariasDescontarAlimentacao', e.target.checked)}
-                        className="rounded text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span className="text-gray-700">Descontar Aux. Alimentação proporcional?</span>
-                    </label>
-                    <label className="flex items-center gap-2 text-xs">
-                      <input
-                        type="checkbox"
-                        checked={state.diariasDescontarTransporte}
-                        onChange={e => update('diariasDescontarTransporte', e.target.checked)}
-                        className="rounded text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span className="text-gray-700">Descontar Aux. Transporte proporcional?</span>
-                    </label>
-                  </div>
-
-                  {state.diariasValorTotal > 0 && (
-                    <div className="mt-4 bg-indigo-50/50 rounded-lg p-3 border border-indigo-100">
-                      <h5 className="text-xs font-bold text-indigo-800 mb-2 uppercase border-b border-indigo-200 pb-1">Extrato Estimado</h5>
-                      <div className="space-y-1 text-xs">
-                        <div className="flex justify-between text-gray-700">
-                          <span>(+) Diárias (Bruto)</span>
-                          <span>{formatCurrency(state.diariasBruto - (state.diariasEmbarque === 'completo' ? 586.78 : state.diariasEmbarque === 'metade' ? 293.39 : 0))}</span>
-                        </div>
-                        <div className="flex justify-between text-gray-700">
-                          <span>(+) Adicional de Embarque</span>
-                          <span>{formatCurrency(state.diariasEmbarque === 'completo' ? 586.78 : state.diariasEmbarque === 'metade' ? 293.39 : 0)}</span>
-                        </div>
-                        {(state.diariasExtHospedagem || state.diariasExtAlimentacao || state.diariasExtTransporte) && (
-                          <div className="flex justify-between text-red-600">
-                            <span>(-) Abatimento Benef. Externo</span>
-                            <span>- {formatCurrency(state.diariasBruto - state.diariasValorTotal - state.diariasDescAlim - state.diariasDescTransp).replace('R$', '').trim() /* Quick calc estimate for display */}</span>
-                          </div>
-                        )}
-                        {state.diariasDescontarAlimentacao && (
-                          <div className="flex justify-between text-red-600">
-                            <span>(-) Restituição Aux. Alimentação</span>
-                            <span>- {formatCurrency(state.diariasDescAlim)}</span>
-                          </div>
-                        )}
-                        {state.diariasDescontarTransporte && (
-                          <div className="flex justify-between text-red-600">
-                            <span>(-) Restituição Aux. Transporte</span>
-                            <span>- {formatCurrency(state.diariasDescTransp)}</span>
-                          </div>
-                        )}
-                        <div className="flex justify-between text-indigo-900 font-bold pt-2 border-t border-indigo-200 mt-2 text-sm">
-                          <span>(=) Total Líquido a Receber</span>
-                          <span>{formatCurrency(state.diariasValorTotal)}</span>
-                        </div>
-                      </div>
-                    </div>
+                    <p className="text-[10px] text-red-500 mt-1 font-bold">Cancelado (Desconto &gt; Gasto).</p>
                   )}
                 </Accordion>
               </div>
-            </Card>
-          </div>
-
-          {/* Column 3: Descontos e Previdência */}
-          <div className="space-y-6">
-            <Card
-              title="Descontos"
-              icon={<Scissors className="h-5 w-5" />}
-              headerColorClass="bg-red-50 border-red-100"
-              borderColorClass="border-red-100"
-              iconColorClass="text-red-600"
-              titleColorClass="text-red-800"
-            >
-
-              <div className="bg-red-50/50 rounded-lg p-3 border border-red-100">
-                <h4 className="text-xs font-bold text-red-700 mb-2">Tabelas de Tributação (Vigência)</h4>
-                <div className="grid grid-cols-2 gap-3 mb-2">
-                  <Select label="Tabela PSS" value={state.tabelaPSS} onChange={e => update('tabelaPSS', e.target.value)}>
-                    <option value="2026">Portaria MPS/MF 13/26</option>
-                    <option value="2025">Portaria MPS/MF 6/25</option>
-                    <option value="2024">Portaria MPS/MF 4/24</option>
-                  </Select>
-                  <Select label="Tabela IR (Lei 11.482)" value={state.tabelaIR} onChange={e => update('tabelaIR', e.target.value)}>
-                    <option value="2025_maio">Maio/2025</option>
-                    <option value="2024_fev">Fev/2024</option>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[10px] text-gray-500 block mb-1">Dedução Dep. (Lei 9250)</label>
-                    <input className="form-input w-full rounded-md border-red-200 bg-gray-50 text-xs text-gray-600" readOnly type="text" value="R$ 189,59" />
-                  </div>
-                  <Input label="Dependentes IR" type="number" value={state.dependentes} onChange={e => update('dependentes', Number(e.target.value))} className="bg-white text-center" />
-                </div>
-              </div>
-
-              <div className="bg-orange-50/50 rounded-lg p-3 border border-orange-100">
-                <h4 className="text-xs font-bold text-orange-700 mb-2">Regime de Previdência / Ingresso</h4>
-                <Select label="" value={state.regimePrev} onChange={e => update('regimePrev', e.target.value)} className="mb-3">
-                  <option value="antigo">Antes de 2013 / Regime Antigo (Integral)</option>
-                  <option value="migrado">Antes de 2013 / Previdência Complementar (Teto)</option>
-                  <option value="novo_antigo">Após 2013 / Regime Antigo (Integral - Raro)</option>
-                  <option value="rpc">Após 2013 / RPC (Teto INSS)</option>
-                </Select>
-
-                <div className="space-y-1">
-                  <label className="flex items-center gap-2 text-[10px]">
-                    <input type="checkbox" checked={state.pssSobreFC} onChange={e => update('pssSobreFC', e.target.checked)} className="rounded border-gray-300 text-orange-500" />
-                    <span className="text-gray-600">Incidir PSS sobre FC/CJ</span>
-                  </label>
-
-                </div>
-
-                {state.regimePrev !== 'antigo' && (
-                  <div className="grid grid-cols-2 gap-2 mt-2 border-t border-orange-200 pt-2">
-                    <Select label="Funpresp Alíquota" value={state.funprespAliq} onChange={e => update('funprespAliq', Number(e.target.value))}>
-                      <option value={0}>Não aderi</option>
-                      <option value={0.065}>6,5%</option>
-                      <option value={0.075}>7,5%</option>
-                      <option value={0.085}>8,5%</option>
-                    </Select>
-                    <Input label="Facultativa (%)" type="number" value={state.funprespFacul} onChange={e => update('funprespFacul', Number(e.target.value))} className="bg-white" />
-                  </div>
-                )}
-              </div>
-
-              {/* Configuração do 13º Salário (Adiantamento) */}
-              <div className="bg-sky-50/50 rounded-lg p-3 border border-sky-100 mt-3 mb-3">
-                <h4 className="text-xs font-bold text-sky-800 mb-2">Décimo Terceiro (Novembro)</h4>
-                <label className="flex items-center gap-2 text-[10px] mb-2">
-                  <input type="checkbox" checked={state.manualDecimoTerceiroNov} onChange={e => update('manualDecimoTerceiroNov', e.target.checked)} className="rounded border-gray-300 text-sky-600" />
-                  <span className="text-gray-600">Editar Primeira Parcela do 13º?</span>
-                </label>
-
-                {state.manualDecimoTerceiroNov && (
-                  <div className="grid grid-cols-2 gap-2 mb-2">
-                    <Input label="1ª Parc. Vencimento" type="number" value={state.decimoTerceiroNovVenc} onChange={e => update('decimoTerceiroNovVenc', Number(e.target.value))} className="bg-white" />
-                    <Input label="1ª Parc. FC/CJ" type="number" value={state.decimoTerceiroNovFC} onChange={e => update('decimoTerceiroNovFC', Number(e.target.value))} className="bg-white" />
-                  </div>
-                )}
-
-                {!state.manualAdiant13 && (
-                  <div className="text-[10px] text-gray-400 italic mb-2">
-                    * Automático (50%)
-                  </div>
-                )}
-              </div>
-
-              <div className="bg-gray-50/50 rounded-lg p-3 border border-gray-100 space-y-3">
-                <h4 className="text-xs font-bold text-gray-700 mb-2">Deduções Calculadas</h4>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white p-2 rounded border border-red-100 shadow-sm">
-                    <label className="text-[10px] text-gray-500 font-bold block mb-1">PSS Mensal (RPPS)</label>
-                    <span className="text-sm font-bold text-red-600 block">{formatCurrency(state.pssMensal)}</span>
-                  </div>
-                  <div className="bg-white p-2 rounded border border-purple-100 shadow-sm">
-                    <label className="text-[10px] text-gray-500 font-bold block mb-1">Funpresp</label>
-                    <span className="text-sm font-bold text-purple-600 block">{formatCurrency(state.valFunpresp)}</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white p-2 rounded border border-gray-200 shadow-sm">
-                    <label className="text-[10px] text-gray-500 font-bold block mb-1">IRRF (Salário)</label>
-                    <span className="text-sm font-bold text-gray-700 block">{formatCurrency(state.irMensal)}</span>
-                  </div>
-                  <div className="bg-white p-2 rounded border border-gray-200 shadow-sm">
-                    <label className="text-[10px] text-gray-500 font-bold block mb-1">IRRF (RRA/Ant.)</label>
-                    <span className="text-sm font-bold text-gray-700 block">{formatCurrency(state.irEA)}</span>
-                  </div>
-                </div>
-
-                {/* Additional Deductions Grid */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white p-2 rounded border border-sky-100 shadow-sm">
-                    <label className="text-[10px] text-gray-500 font-bold block mb-1">IRRF Férias</label>
-                    <span className="text-sm font-bold text-sky-700 block">{formatCurrency(state.irFerias)}</span>
-                  </div>
-                  <div className="bg-white p-2 rounded border border-red-100 shadow-sm">
-                    <label className="text-[10px] text-gray-500 font-bold block mb-1">Cota-Parte Transporte</label>
-                    <span className="text-sm font-bold text-red-600 block">{formatCurrency(state.auxTransporteDesc)}</span>
-                  </div>
-                  {state.feriasDesc > 0 && (
-                    <div className="col-span-2 bg-red-50 p-2 rounded border border-red-200 shadow-sm">
-                      <label className="text-[10px] text-red-800 font-bold block mb-1">Adicional 1/3 de Férias (Antecipado)</label>
-                      <span className="text-sm font-bold text-red-700 block">{formatCurrency(state.feriasDesc)}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white p-2 rounded border border-red-100 shadow-sm">
-                    <label className="text-[10px] text-gray-500 font-bold block mb-1">PSS sobre 13º</label>
-                    <span className="text-sm font-bold text-red-600 block">{formatCurrency(state.pss13 || 0)}</span>
-                  </div>
-                  <div className="bg-white p-2 rounded border border-red-100 shadow-sm">
-                    <label className="text-[10px] text-gray-500 font-bold block mb-1">IRRF sobre 13º</label>
-                    <span className="text-sm font-bold text-red-600 block">{formatCurrency(state.ir13 || 0)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-gray-100">
-                <h4 className="text-xs font-bold text-gray-900 uppercase mb-3">Outros Descontos (Opcionais)</h4>
-                <div>
-                  <label className="text-xs font-medium text-gray-500 block mb-1">Empréstimos</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">R$</span>
-                    <input
-                      type="text"
-                      className="form-input w-full pl-9 rounded-md border-gray-200 bg-white text-sm"
-                      value={state.emprestimos.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      onChange={e => {
-                        const raw = e.target.value.replace(/\D/g, '');
-                        update('emprestimos', Number(raw) / 100);
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-gray-500 block mb-1">Plano de Saúde</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">R$</span>
-                    <input
-                      type="text"
-                      className="form-input w-full pl-9 rounded-md border-gray-200 bg-white text-sm"
-                      value={state.planoSaude.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      onChange={e => {
-                        const raw = e.target.value.replace(/\D/g, '');
-                        update('planoSaude', Number(raw) / 100);
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-gray-500 block mb-1">Pensão Alimentícia</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">R$</span>
-                    <input
-                      type="text"
-                      className="form-input w-full pl-9 rounded-md border-gray-200 bg-white text-sm"
-                      value={state.pensao.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      onChange={e => {
-                        const raw = e.target.value.replace(/\D/g, '');
-                        update('pensao', Number(raw) / 100);
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-            </Card>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-sm font-bold text-blue-600 uppercase mb-4">Rubricas Adicionais (Manual)</h3>
-
-              <div className="space-y-2 mb-3">
-                {state.rubricasExtras.map((rubrica) => (
-                  <div key={rubrica.id} className="flex gap-2 items-center">
-                    <input
-                      type="text"
-                      placeholder="Descrição"
-                      className="form-input flex-1 rounded border-gray-200 text-xs"
-                      value={rubrica.descricao}
-                      onChange={e => updateRubrica(rubrica.id, 'descricao', e.target.value)}
-                    />
-                    <select
-                      className="form-select w-24 rounded border-gray-200 text-xs"
-                      value={rubrica.tipo}
-                      onChange={e => updateRubrica(rubrica.id, 'tipo', e.target.value)}
-                    >
-                      <option value="C">Crédito</option>
-                      <option value="D">Débito</option>
-                    </select>
-                    <input
-                      type="number"
-                      placeholder="Valor"
-                      className="form-input w-24 rounded border-gray-200 text-xs text-right"
-                      value={rubrica.valor || ''}
-                      onChange={e => updateRubrica(rubrica.id, 'valor', Number(e.target.value))}
-                    />
-                    <button onClick={() => removeRubrica(rubrica.id)} className="text-red-500 hover:bg-red-50 p-1 rounded">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={addRubrica}
-                className="flex items-center gap-2 bg-secondary hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors w-full justify-center"
-              >
-                <Plus className="h-4 w-4" /> Adicionar Rubrica
-              </button>
             </div>
           </div>
         </div>
 
+        {/* Column 3: Deductions */}
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 card-shadow">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+              <span className="material-symbols-outlined text-lg">horizontal_rule</span>Descontos
+            </h3>
 
-
-        <section className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-
-
-          <h3 className="text-sm font-bold text-gray-700 mb-3">Observações / Notas</h3>
-          <textarea
-            className="form-textarea w-full rounded-md border-gray-200 bg-gray-50 text-sm h-20 placeholder-gray-400 focus:border-primary focus:ring-primary"
-            placeholder="Digite aqui anotações sobre este cálculo..."
-            value={state.observacoes}
-            onChange={e => update('observacoes', e.target.value)}
-          />
-        </section>
-
-        <section className="mt-8 space-y-4">
-          <button
-            onClick={scrollToResults}
-            className="w-full bg-primary hover:bg-blue-600 text-white text-lg font-bold py-4 rounded-md shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 uppercase tracking-wide"
-          >
-            CALCULAR SALÁRIO
-          </button>
-
-          <div id="results-section" className="bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden">
-            <div className="border-b border-gray-200">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 text-left">
-                    <th className="py-3 px-4 font-bold text-gray-600 uppercase text-xs tracking-wider">Rubrica</th>
-                    <th className="py-3 px-4 font-bold text-gray-600 uppercase text-xs tracking-wider text-right">Valor</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {resultRows.map((row, idx) => (
-                    <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                      <td className={`py-3 px-4 font-medium ${row.type === 'C' ? 'text-green-600' : 'text-red-600'}`}>
-                        {row.label}
-                      </td>
-                      <td className="py-3 px-4 text-right text-gray-700">
-                        {formatCurrency(row.value)}
-                      </td>
-                    </tr>
-                  ))}
-                  {/* Totals */}
-                  <tr className="bg-white">
-                    <td className="py-3 px-4 font-bold text-gray-800 uppercase">TOTAL BRUTO</td>
-                    <td className="py-3 px-4 text-right font-bold text-gray-800">{formatCurrency(state.totalBruto)}</td>
-                  </tr>
-                  <tr className="bg-white">
-                    <td className="py-3 px-4 font-bold text-gray-800 uppercase">TOTAL DESCONTOS</td>
-                    <td className="py-3 px-4 text-right font-bold text-gray-800">{formatCurrency(state.totalDescontos)}</td>
-                  </tr>
-                </tbody>
-              </table>
+            {/* Section 1: Tabelas de Tributação (Normalized) */}
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 mb-4">
+              <h4 className="text-xs font-bold text-slate-500 uppercase mb-3 text-left">Tabelas de Tributação (Vigência)</h4>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="text-[10px] text-slate-500 block mb-1">Tabela PSS</label>
+                  <select className="w-full rounded-lg border-slate-200 text-sm py-1.5 bg-white focus:ring-secondary focus:border-secondary" value={state.tabelaPSS} onChange={e => update('tabelaPSS', e.target.value)}>
+                    <option value="2026">2026 (Est.)</option>
+                    <option value="2025">Portaria MPS/MF 14</option>
+                    <option value="2024">2024 (Antiga)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-500 block mb-1">Tabela IR (Lei 11.482)</label>
+                  <select className="w-full rounded-lg border-slate-200 text-sm py-1.5 bg-white focus:ring-secondary focus:border-secondary" value={state.tabelaIR} onChange={e => update('tabelaIR', e.target.value)}>
+                    <option value="2025_maio">Maio/2025</option>
+                    <option value="2024_fev">Fev/2024</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] text-slate-500 block mb-1">Dedução Dep. (Lei 9250)</label>
+                  <div className="text-sm font-medium text-slate-700 py-1.5 px-3 bg-white border border-slate-200 rounded-lg">R$ 189,59</div>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-500 block mb-1">Dependentes IR</label>
+                  <input type="number" className="w-full rounded-lg border-slate-200 text-sm py-1.5 text-center focus:ring-secondary focus:border-secondary" value={state.dependentes} onChange={e => update('dependentes', Number(e.target.value))} />
+                </div>
+              </div>
             </div>
 
-            <div className="bg-gray-50 p-4 flex justify-end gap-2 border-t border-gray-200">
-              <button onClick={handleExportPDF} className="bg-[#e74c3c] hover:bg-[#c0392b] text-white text-xs font-bold py-2 px-4 rounded shadow-sm flex items-center gap-2 transition-colors">
-                <FileText size={16} /> PDF (Holerite)
+            {/* Section 2: Regime de Previdência (Normalized) */}
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 mb-4">
+              <h4 className="text-xs font-bold text-slate-500 uppercase mb-3 text-left">Regime de Previdência / Ingresso</h4>
+              <select className="w-full rounded-lg border-slate-200 text-sm py-2 mb-2 bg-white focus:ring-secondary focus:border-secondary" value={state.regimePrev} onChange={e => update('regimePrev', e.target.value)}>
+                <option value="antigo">Antes de 2013 / Regime Antigo (Integral)</option>
+                <option value="migrado">Antes de 2013 (Migrado - Teto)</option>
+                <option value="novo_antigo">Após 2013 (Integral - Raro)</option>
+                <option value="rpc">Após 2013 (RPC - Teto)</option>
+              </select>
+              <label className="flex items-center gap-2 text-xs text-slate-600 mt-2 cursor-pointer">
+                <input type="checkbox" checked={state.pssSobreFC} onChange={e => update('pssSobreFC', e.target.checked)} className="rounded border-slate-300 text-slate-600 focus:ring-slate-200" />
+                Incidir PSS sobre FC/CJ
+              </label>
+              {state.regimePrev !== 'antigo' && (
+                <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-200">
+                  <div>
+                    <label className="text-[10px] text-slate-500 block">Funpresp</label>
+                    <select className="w-full text-xs rounded border-slate-200 focus:ring-secondary focus:border-secondary" value={state.funprespAliq} onChange={e => update('funprespAliq', Number(e.target.value))}>
+                      <option value={0}>Não</option>
+                      <option value={0.065}>6.5%</option>
+                      <option value={0.075}>7.5%</option>
+                      <option value={0.085}>8.5%</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-500 block">Facultativa (%)</label>
+                    <input type="number" className="w-full text-xs rounded border-slate-200 focus:ring-secondary focus:border-secondary" value={state.funprespFacul} onChange={e => update('funprespFacul', Number(e.target.value))} />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Section 3: Deduções Calculadas (Normalized) */}
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 mb-4">
+              <h4 className="text-xs font-bold text-slate-500 uppercase mb-3 text-left">Deduções Calculadas</h4>
+
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                {/* PSS */}
+                <div className="p-3 border border-slate-200 bg-white rounded-lg">
+                  <span className="block text-[10px] font-bold text-slate-500 mb-1">PSS Mensal (RPPS)</span>
+                  <span className="text-sm font-bold text-red-600">{formatCurrency(state.pssMensal)}</span>
+                </div>
+                {/* Funpresp */}
+                <div className="p-3 border border-slate-200 bg-white rounded-lg">
+                  <span className="block text-[10px] font-bold text-slate-500 mb-1">Funpresp</span>
+                  <span className="text-sm font-bold text-purple-600">{formatCurrency(state.valFunpresp)}</span>
+                </div>
+                {/* IRRF Salário */}
+                <div className="p-3 border border-slate-200 bg-white rounded-lg">
+                  <span className="block text-[10px] font-bold text-slate-500 mb-1">IRRF (Salário)</span>
+                  <span className="text-sm font-bold text-red-600">{formatCurrency(state.irMensal)}</span>
+                </div>
+                {/* IRRF RRA/Ant */}
+                <div className="p-3 border border-slate-200 bg-white rounded-lg">
+                  <span className="block text-[10px] font-bold text-slate-500 mb-1">IRRF (RRA/Ant.)</span>
+                  <span className="text-sm font-bold text-slate-700">{formatCurrency(0)}</span>
+                </div>
+                {/* IRRF Férias */}
+                <div className="p-3 border border-slate-200 bg-white rounded-lg">
+                  <span className="block text-[10px] font-bold text-slate-500 mb-1">IRRF Férias</span>
+                  <span className="text-sm font-bold text-red-600">{formatCurrency(state.irFerias)}</span>
+                </div>
+                {/* Cota Transporte */}
+                <div className="p-3 border border-slate-200 bg-white rounded-lg">
+                  <span className="block text-[10px] font-bold text-slate-500 mb-1">Cota-Parte Transporte</span>
+                  <span className="text-sm font-bold text-orange-600">{formatCurrency(state.auxTransporteDesc)}</span>
+                </div>
+              </div>
+
+              {/* Adicional 1/3 Férias (Antecipado) - Full Width */}
+              {state.feriasDesc > 0 && (
+                <div className="mb-3 p-3 bg-white border border-slate-200 rounded-lg">
+                  <span className="block text-[10px] font-bold text-red-700 mb-1">Adicional 1/3 de Férias (Antecipado)</span>
+                  <span className="text-lg font-bold text-red-700">{formatCurrency(state.feriasDesc)}</span>
+                </div>
+              )}
+
+              {/* 13º Row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 border border-slate-200 bg-white rounded-lg">
+                  <span className="block text-[10px] font-bold text-slate-500 mb-1">PSS sobre 13º</span>
+                  <span className="text-sm font-bold text-red-600">{formatCurrency(state.pss13)}</span>
+                </div>
+                <div className="p-3 border border-slate-200 bg-white rounded-lg">
+                  <span className="block text-[10px] font-bold text-slate-500 mb-1">IRRF sobre 13º</span>
+                  <span className="text-sm font-bold text-red-600">{formatCurrency(state.ir13)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 4: Outros Descontos (Consignações) */}
+            <div className="mb-4">
+              <h4 className="text-xs font-bold text-slate-500 uppercase mb-3">Outros Descontos (Opcionais)</h4>
+              <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs text-slate-500">Empréstimos</label>
+                  <div className="w-32">
+                    <input type="text" className="w-full rounded border-slate-200 text-xs text-right focus:ring-secondary focus:border-secondary" value={state.emprestimos} onChange={e => update('emprestimos', Number(e.target.value.replace(/\D/g, '') / 100))} />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs text-slate-500">Plano de Saúde</label>
+                  <div className="w-32">
+                    <input type="text" className="w-full rounded border-slate-200 text-xs text-right focus:ring-secondary focus:border-secondary" value={state.planoSaude} onChange={e => update('planoSaude', Number(e.target.value.replace(/\D/g, '') / 100))} />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <label className="text-xs text-slate-500">Pensão Alimentícia</label>
+                  <div className="w-32">
+                    <input type="text" className="w-full rounded border-slate-200 text-xs text-right focus:ring-secondary focus:border-secondary" value={state.pensao} onChange={e => update('pensao', Number(e.target.value.replace(/\D/g, '') / 100))} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+
+            {/* Section 5: 13º Salário (Normalized) */}
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 mb-4">
+              <h4 className="text-xs font-bold text-slate-500 uppercase mb-3 text-left">Décimo Terceiro (Novembro)</h4>
+              <label className="flex items-center gap-2 text-xs text-slate-600 mb-1 cursor-pointer">
+                <input type="checkbox" checked={state.manualDecimoTerceiroNov} onChange={e => update('manualDecimoTerceiroNov', e.target.checked)} className="rounded border-slate-300 text-slate-600 focus:ring-secondary" />
+                Editar Primeira Parcela do 13º?
+              </label>
+              {!state.manualDecimoTerceiroNov && <p className="text-[10px] text-slate-400 italic ml-6">* Automático (50%)</p>}
+              {state.manualDecimoTerceiroNov && (
+                <div className="grid grid-cols-2 gap-2 mt-2 ml-6">
+                  <input type="number" placeholder="Venc" className="rounded border-slate-200 text-xs py-1 focus:ring-secondary focus:border-secondary" value={state.decimoTerceiroNovVenc} onChange={e => update('decimoTerceiroNovVenc', Number(e.target.value))} />
+                  <input type="number" placeholder="FC" className="rounded border-slate-200 text-xs py-1 focus:ring-secondary focus:border-secondary" value={state.decimoTerceiroNovFC} onChange={e => update('decimoTerceiroNovFC', Number(e.target.value))} />
+                </div>
+              )}
+            </div>
+
+            {/* Rubricas Adicionais (Bottom) */}
+            <div className="mt-6 pt-6 border-t border-slate-100">
+              <button
+                onClick={addRubrica}
+                className="w-full py-3 bg-secondary text-white rounded-xl text-xs font-bold uppercase hover:bg-secondary/90 shadow-lg shadow-secondary/20 transition-all flex items-center justify-center gap-2"
+              >
+                <Plus className="h-4 w-4" /> Adicionar Rubrica (Manual)
               </button>
-              <button onClick={handleExportExcel} className="bg-[#2ecc71] hover:bg-[#27ae60] text-white text-xs font-bold py-2 px-4 rounded shadow-sm flex items-center gap-2 transition-colors">
-                <Table size={16} /> Excel
+
+              <div className="space-y-2 mt-3">
+                {state.rubricasExtras.filter(r => r.tipo === 'D').map((rubrica) => (
+                  <div key={rubrica.id} className="flex gap-2 items-center bg-slate-50 p-2 rounded-lg border border-slate-100">
+                    <input
+                      type="text"
+                      placeholder="Descrição"
+                      className="flex-1 rounded-md border-slate-200 text-xs py-1.5 focus:ring-secondary focus:border-secondary bg-white"
+                      value={rubrica.descricao}
+                      onChange={e => updateRubrica(rubrica.id, 'descricao', e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      placeholder="Valor"
+                      className="w-24 rounded-md border-slate-200 text-xs py-1.5 text-right focus:ring-secondary focus:border-secondary bg-white"
+                      value={rubrica.valor || ''}
+                      onChange={e => updateRubrica(rubrica.id, 'valor', Number(e.target.value))}
+                    />
+                    <button onClick={() => removeRubrica(rubrica.id)} className="text-slate-400 hover:text-red-500 p-1.5 rounded-md transition-colors">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {/* Observações Section (Restored) */}
+      <section className="mt-8 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 card-shadow">
+        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+          <FileText className="h-4 w-4" /> Observações / Notas
+        </h3>
+        <textarea
+          className="w-full rounded-xl border-slate-200 bg-slate-50 text-sm h-24 placeholder-slate-400 focus:border-secondary focus:ring-secondary resize-none p-4"
+          placeholder="Digite aqui anotações sobre este cálculo para sair na impressão..."
+          value={state.observacoes}
+          onChange={e => update('observacoes', e.target.value)}
+        />
+      </section>
+
+      {/* Results Deck */}
+      <div className="mt-8 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden mb-20">
+        <div className="bg-slate-800 p-4 flex justify-between items-center">
+          <h3 className="text-white font-bold text-lg uppercase tracking-wider flex items-center gap-2">
+            <span className="material-symbols-outlined">receipt_long</span> Detalhamento
+          </h3>
+          <span className="bg-white/10 text-white px-3 py-1 rounded-full text-xs font-mono">Ref: {state.mesRef}/{state.anoRef}</span>
+        </div>
+
+        <div className="p-0">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 border-b border-slate-100">
+              <tr>
+                <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase text-xs">Rubrica</th>
+                <th className="px-6 py-3 text-right font-bold text-slate-500 uppercase text-xs">Valor</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {resultRows.map((row, idx) => (
+                <tr key={idx} className="hover:bg-slate-50 transition">
+                  <td className={`px-6 py-3 font-medium ${row.type === 'C' ? 'text-emerald-600' : 'text-rose-500'}`}>
+                    {row.label}
+                  </td>
+                  <td className="px-6 py-3 text-right font-mono text-slate-700">{formatCurrency(row.value)}</td>
+                </tr>
+              ))}
+              <tr className="bg-slate-50/50">
+                <td className="px-6 py-4 font-bold text-slate-800 uppercase">Total Bruto</td>
+                <td className="px-6 py-4 text-right font-bold text-slate-800">{formatCurrency(state.totalBruto)}</td>
+              </tr>
+              <tr className="bg-slate-50/50">
+                <td className="px-6 py-4 font-bold text-rose-600 uppercase">Total Descontos</td>
+                <td className="px-6 py-4 text-right font-bold text-rose-600">{formatCurrency(state.totalDescontos)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Sticky Footer */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 py-4 px-6 z-50 card-shadow">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="hidden md:block">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Resultado Líquido</p>
+            <p className="text-sm text-slate-500">Considerando todos os descontos legais e opcionais.</p>
+          </div>
+          <div className="flex items-center gap-6">
+
+            <div className="flex items-center gap-2 mr-4">
+              <button
+                onClick={handleExportPDF}
+                className="bg-red-500/10 hover:bg-red-500 hover:text-white text-red-600 p-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 font-bold text-xs"
+                title="Exportar PDF/Holerite"
+              >
+                <FileText size={18} /> <span className="hidden sm:inline">PDF</span>
+              </button>
+              <button
+                onClick={handleExportExcel}
+                className="bg-emerald-500/10 hover:bg-emerald-500 hover:text-white text-emerald-600 p-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 font-bold text-xs"
+                title="Exportar Excel"
+              >
+                <Table size={18} /> <span className="hidden sm:inline">Excel</span>
               </button>
             </div>
 
-            <div className="bg-secondary py-6 px-4 text-white flex flex-col items-center justify-center text-center">
-              <span className="text-xs font-bold uppercase tracking-widest opacity-80 mb-1">Líquido a Receber</span>
-              <span className="text-3xl font-extrabold tracking-tight">{formatCurrency(state.liquido)}</span>
+            <div className="text-right">
+              <span className="block text-xs font-bold text-slate-400 uppercase mb-1 md:hidden">Líquido</span>
+              <span className="text-3xl md:text-4xl font-black text-slate-800 dark:text-white tracking-tight brand-gradient-text">
+                {formatCurrency(state.liquido)}
+              </span>
             </div>
           </div>
-        </section>
+        </div>
+      </div>
 
-      </main >
-
-      <footer className="mt-12 py-6 border-t border-gray-200 text-center">
-        <p className="text-xs text-gray-400">Simulador de Salário JMU © 2025 - Design Modernizado</p>
-      </footer>
     </div >
   );
 }

@@ -5,6 +5,7 @@ import Home from './src/pages/Home';
 import Calculator from './src/pages/Calculator';
 import Login from './src/pages/Login';
 import AdminDashboard from './src/pages/AdminDashboard';
+import MainLayout from './src/components/MainLayout';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
     const { session, loading } = useAuth();
@@ -25,17 +26,19 @@ export default function App() {
         <AuthProvider>
             <BrowserRouter>
                 <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/simulador/:slug" element={<Calculator />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route
-                        path="/admin"
-                        element={
-                            <PrivateRoute>
-                                <AdminDashboard />
-                            </PrivateRoute>
-                        }
-                    />
+                    <Route element={<MainLayout />}>
+                        <Route path="/" element={<Home />} />
+                        <Route path="/simulador/:slug" element={<Calculator />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route
+                            path="/admin"
+                            element={
+                                <PrivateRoute>
+                                    <AdminDashboard />
+                                </PrivateRoute>
+                            }
+                        />
+                    </Route>
                 </Routes>
             </BrowserRouter>
         </AuthProvider>

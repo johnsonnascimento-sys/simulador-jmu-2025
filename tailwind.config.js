@@ -10,15 +10,18 @@ export default {
     darkMode: "class",
     theme: {
         extend: {
-            fontFamily: {
-                sans: ['Inter', 'sans-serif'],
-            },
             colors: {
-                primary: "#3B82F6", // Blue-500
-                secondary: "#10B981", // Emerald-500
-                surface: "#FFFFFF",
-                background: "#F3F4F6", // Gray-100
-                "border-light": "#E5E7EB", // Gray-200
+                primary: "#14b8a6",
+                secondary: "#2563eb",
+                "navy-dark": "#0f172a",
+                "background-light": "#f8fafc",
+                "background-dark": "#0f172a",
+            },
+            fontFamily: {
+                display: ["Plus Jakarta Sans", "sans-serif"],
+            },
+            borderRadius: {
+                DEFAULT: "0.75rem",
             },
         },
     },
