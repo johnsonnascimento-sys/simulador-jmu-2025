@@ -7,9 +7,9 @@ import { Input, Select } from '../../components/Inputs';
 import { Settings, FileText, Calculator as CalculatorIcon, ArrowLeft, Trash2, Plus, Table } from 'lucide-react';
 import { Accordion } from '../../components/Accordion';
 
-// Declare standard libs for export logic
-declare const jspdf: any;
-declare const XLSX: any;
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 export default function Calculator() {
   const { slug } = useParams<{ slug: string }>();
@@ -256,7 +256,6 @@ export default function Calculator() {
   }, [state]);
 
   const handleExportPDF = () => {
-    const { jsPDF } = (window as any).jspdf;
     const doc = new jsPDF();
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
@@ -275,7 +274,7 @@ export default function Calculator() {
     ]);
     tableBody.push(['', 'TOTAL', formatCurrency(state.totalBruto), formatCurrency(state.totalDescontos)]);
 
-    doc.autoTable({
+    (doc as any).autoTable({
       head: [['TIPO', 'RUBRICA', 'PROVENTOS', 'DESCONTOS']],
       body: tableBody,
       startY: 48,
@@ -294,7 +293,7 @@ export default function Calculator() {
       }
     });
 
-    const finalY = doc.lastAutoTable.finalY + 10;
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text(`LÍQUIDO A RECEBER: ${formatCurrency(state.liquido)}`, 195, finalY, { align: "right" });
