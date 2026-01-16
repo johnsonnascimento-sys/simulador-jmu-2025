@@ -26,7 +26,12 @@ export default function Login() {
         // Tentativa de login genérica (Magic Link para teste se o usuário digitar email)
         const email = prompt("Digite seu email para receber Magic Link (Supabase deve estar configurado):");
         if (email) {
-            const { error } = await supabase.auth.signInWithOtp({ email });
+            const { error } = await supabase.auth.signInWithOtp({
+                email,
+                options: {
+                    emailRedirectTo: window.location.origin
+                }
+            });
             if (error) alert(error.message);
             else alert("Verifique seu email!");
         }
