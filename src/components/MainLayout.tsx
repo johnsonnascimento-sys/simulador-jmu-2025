@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
+import { Sun, Moon, Heart, Mail, MapPin } from 'lucide-react';
+import logo from '../assets/logo.png';
 
 const MainLayout: React.FC = () => {
     const [isDark, setIsDark] = useState(false);
@@ -23,9 +25,7 @@ const MainLayout: React.FC = () => {
                     <div className="flex justify-between items-center h-20">
                         <div className="flex items-center gap-3">
                             <Link to="/" className="flex items-center gap-3">
-                                <div className="w-10 h-10 brand-gradient rounded-xl flex items-center justify-center text-white overflow-hidden shadow-lg shadow-secondary/20">
-                                    <span className="material-symbols-outlined text-2xl font-bold">account_balance_wallet</span>
-                                </div>
+                                <img src={logo} alt="Salário do Servidor" className="w-16 h-16 object-contain" />
                                 <span className="text-xl font-extrabold tracking-tight text-slate-800 dark:text-white">
                                     Salário do <span className="gradient-text">Servidor</span>
                                 </span>
@@ -34,9 +34,8 @@ const MainLayout: React.FC = () => {
 
                         <nav className="hidden md:flex items-center gap-10">
                             <Link to="/" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-secondary dark:hover:text-primary transition-colors">Início</Link>
-                            <Link to="/simulador/stm" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-secondary dark:hover:text-primary transition-colors">Simuladores</Link>
-                            <a href="#" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-secondary dark:hover:text-primary transition-colors">Tabelas</a>
-                            <a href="#" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-secondary dark:hover:text-primary transition-colors">Sobre</a>
+                            <Link to="/" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-secondary dark:hover:text-primary transition-colors">Simuladores</Link>
+                            <Link to="/apoiar" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-secondary dark:hover:text-primary transition-colors">Apoiar</Link>
                         </nav>
 
                         <div className="flex items-center gap-4">
@@ -44,13 +43,12 @@ const MainLayout: React.FC = () => {
                                 onClick={toggleTheme}
                                 className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                             >
-                                <span className={`material-symbols-outlined text-xl ${isDark ? 'hidden' : 'block'}`}>dark_mode</span>
-                                <span className={`material-symbols-outlined text-xl ${isDark ? 'block' : 'hidden'}`}>light_mode</span>
+                                {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                             </button>
-                            <a className="border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-6 py-2 rounded-full font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2" href="#">
-                                <span className="material-symbols-outlined text-lg">support_agent</span>
-                                Suporte
-                            </a>
+                            <Link to="/apoiar" className="btn btn-sm bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold hover:shadow-lg hover:shadow-rose-500/30 transition-all">
+                                <Heart className="w-4 h-4" />
+                                Apoiar
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -67,9 +65,7 @@ const MainLayout: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
                         <div className="space-y-6">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 brand-gradient rounded-xl flex items-center justify-center text-white">
-                                    <span className="material-symbols-outlined text-2xl font-bold">account_balance_wallet</span>
-                                </div>
+                                <img src={logo} alt="Salário do Servidor" className="w-16 h-16 object-contain" />
                                 <span className="text-xl font-bold tracking-tight text-white">
                                     Salário do <span className="gradient-text">Servidor</span>
                                 </span>
@@ -90,50 +86,52 @@ const MainLayout: React.FC = () => {
                             </div>
                         </div>
                         <div>
-                            <h4 class="text-white font-bold mb-6 text-lg">Sobre o Site</h4>
-                            <ul class="space-y-4 text-sm">
-                                <li><a class="hover:text-primary transition-colors" href="#">Quem Somos</a></li>
-                                <li><a class="hover:text-primary transition-colors" href="#">Nossa Metodologia</a></li>
-                                <li><a class="hover:text-primary transition-colors" href="#">Privacidade e Termos</a></li>
-                                <li><a class="hover:text-primary transition-colors" href="#">Anuncie Conosco</a></li>
+                            <h4 className="text-white font-bold mb-6 text-lg">Sobre o Site</h4>
+                            <ul className="space-y-4 text-sm">
+                                <li><a className="hover:text-primary transition-colors" href="#">Quem Somos</a></li>
+                                <li><a className="hover:text-primary transition-colors" href="#">Nossa Metodologia</a></li>
+                                <li><a className="hover:text-primary transition-colors" href="#">Privacidade e Termos</a></li>
+                                <li><Link to="/apoiar" className="hover:text-primary transition-colors">Apoiar o Projeto</Link></li>
                             </ul>
                         </div>
                         <div>
-                            <h4 class="text-white font-bold mb-6 text-lg">Links Úteis</h4>
-                            <ul class="space-y-4 text-sm">
-                                <li><a class="hover:text-primary transition-colors" href="#">Portal da Transparência</a></li>
-                                <li><a class="hover:text-primary transition-colors" href="#">Receita Federal</a></li>
-                                <li><a class="hover:text-primary transition-colors" href="#">Diário Oficial</a></li>
-                                <li><a class="hover:text-primary transition-colors" href="#">Legislação Federal</a></li>
+                            <h4 className="text-white font-bold mb-6 text-lg">Links Úteis</h4>
+                            <ul className="space-y-4 text-sm">
+                                <li><a className="hover:text-primary transition-colors" href="#">Portal da Transparência</a></li>
+                                <li><a className="hover:text-primary transition-colors" href="#">Receita Federal</a></li>
+                                <li><a className="hover:text-primary transition-colors" href="#">Diário Oficial</a></li>
+                                <li><a className="hover:text-primary transition-colors" href="#">Legislação Federal</a></li>
                             </ul>
                         </div>
                         <div>
-                            <h4 class="text-white font-bold mb-6 text-lg">Contato</h4>
-                            <ul class="space-y-4 text-sm">
-                                <li class="flex items-center gap-3">
-                                    <span class="material-symbols-outlined text-primary text-xl">mail</span>
+                            <h4 className="text-white font-bold mb-6 text-lg">Contato</h4>
+                            <ul className="space-y-4 text-sm">
+                                <li className="flex items-center gap-3">
+                                    <Mail className="w-5 h-5 text-primary" />
                                     contato@salariodoservidor.com.br
                                 </li>
-                                <li class="flex items-center gap-3">
-                                    <span class="material-symbols-outlined text-primary text-xl">help</span>
-                                    Centro de Suporte
-                                </li>
-                                <li class="flex items-center gap-3">
-                                    <span class="material-symbols-outlined text-primary text-xl">location_on</span>
+                                <li className="flex items-center gap-3">
+                                    <MapPin className="w-5 h-5 text-primary" />
                                     Brasília, DF
+                                </li>
+                                <li>
+                                    <Link to="/apoiar" className="flex items-center gap-3 hover:text-primary transition-colors group">
+                                        <Heart className="w-5 h-5 text-rose-400 group-hover:scale-110 transition-transform" />
+                                        Apoie o Projeto
+                                    </Link>
                                 </li>
                             </ul>
                         </div>
                     </div>
-                    <div class="pt-10 border-t border-slate-800 text-center md:flex md:justify-between md:text-left items-center">
-                        <p class="text-xs text-slate-500 mb-4 md:mb-0">
+                    <div className="pt-10 border-t border-slate-800 text-center md:flex md:justify-between md:text-left items-center">
+                        <p className="text-xs text-slate-500 mb-4 md:mb-0">
                             © 2024 Salário do Servidor. Todos os direitos reservados.
-                            <span class="block md:inline mt-1 md:mt-0 md:ml-2 opacity-50">Dados meramente ilustrativos, sempre confira com seu órgão oficial.</span>
+                            <span className="block md:inline mt-1 md:mt-0 md:ml-2 opacity-50">Dados meramente ilustrativos, sempre confira com seu órgão oficial.</span>
                         </p>
-                        <div class="flex justify-center md:justify-end gap-6 text-xs font-semibold">
-                            <a class="hover:text-white transition-colors" href="#">Termos</a>
-                            <a class="hover:text-white transition-colors" href="#">Privacidade</a>
-                            <a class="hover:text-white transition-colors" href="#">Cookies</a>
+                        <div className="flex justify-center md:justify-end gap-6 text-xs font-semibold">
+                            <a className="hover:text-white transition-colors" href="#">Termos</a>
+                            <a className="hover:text-white transition-colors" href="#">Privacidade</a>
+                            <a className="hover:text-white transition-colors" href="#">Cookies</a>
                         </div>
                     </div>
                 </div>

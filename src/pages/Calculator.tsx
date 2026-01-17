@@ -1,15 +1,58 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { INITIAL_STATE, CalculatorState, Rubrica, CourtConfig } from '../../types';
+import { INITIAL_STATE, CalculatorState, Rubrica, CourtConfig } from '../types';
 import { getCourtBySlug } from '../services/courtService';
-import { calculateAll, formatCurrency, getTablesForPeriod, calculateBaseFixa } from '../../utils/calculations';
-import { Input, Select } from '../../components/Inputs';
-import { Settings, FileText, Calculator as CalculatorIcon, ArrowLeft, Trash2, Plus, Table } from 'lucide-react';
-import { Accordion } from '../../components/Accordion';
+import { calculateAll, formatCurrency, getTablesForPeriod, calculateBaseFixa } from '../utils/calculations';
+import { Settings, FileText, ArrowLeft, Trash2, Plus, Table, DollarSign, PlusCircle, Minus, List, Receipt } from 'lucide-react';
+import { Accordion } from '../components/Accordion';
+import { Input, Select } from '../components/Inputs';
+import DonationModal from '../components/DonationModal';
 
+import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+
+
+
+// Estilos Reutilizáveis (Design System)
+const styles = {
+  card: "bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm",
+  sectionTitle: "text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2",
+  label: "block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5",
+  input: "w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all",
+  checkboxLabel: "flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 cursor-pointer select-none",
+  checkbox: "rounded border-slate-300 text-secondary focus:ring-secondary",
+  accordionHeader: "px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200",
+  accordionContent: "p-5 border-t border-slate-100 dark:border-slate-700",
+  accordionWrapper: "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm transition-all hover:shadow-md",
+  internalTotalWrapper: "mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center",
+  internalTotalLabel: "text-[10px] font-bold text-slate-400 uppercase tracking-widest",
+  internalTotalValue: "text-sm font-bold text-slate-700 dark:text-white font-mono",
+  actionButton: "w-full py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors uppercase tracking-wide",
+  valueDisplay: "text-sm font-bold text-slate-700 dark:text-slate-200 font-mono",
+
+  // Estilo do Box (Quadradinho)
+  innerBox: "bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 mb-4 border border-slate-100 dark:border-slate-700",
+  innerBoxTitle: "text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-3 flex justify-between"
+};
+
+// Função auxiliar ROBUSTA para carregar imagem no PDF via Fetch
+const getBase64ImageFromURL = async (url: string): Promise<string> => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error("Erro ao converter imagem para Base64:", error);
+    throw error;
+  }
+};
 
 export default function Calculator() {
   const { slug } = useParams<{ slug: string }>();
@@ -17,6 +60,10 @@ export default function Calculator() {
   const [state, setState] = useState<CalculatorState>(INITIAL_STATE);
   const [courtConfig, setCourtConfig] = useState<CourtConfig | null>(null);
   const [loadingConfig, setLoadingConfig] = useState(true);
+
+  // Estado do Modal de Doação
+  const [donationModalOpen, setDonationModalOpen] = useState(false);
+  const [pendingExportType, setPendingExportType] = useState<'pdf' | 'excel'>('pdf');
 
   // Fetch Court Config
   useEffect(() => {
@@ -70,16 +117,6 @@ export default function Calculator() {
     setState(prev => ({
       ...prev,
       substDias: { ...prev.substDias, [key]: days }
-    }));
-  };
-
-  const setToday = () => {
-    const now = new Date();
-    const months = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"];
-    setState(prev => ({
-      ...prev,
-      mesRef: months[now.getMonth()],
-      anoRef: now.getFullYear()
     }));
   };
 
@@ -255,17 +292,42 @@ export default function Calculator() {
     return rows;
   }, [state]);
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     const doc = new jsPDF();
+
+    // Configura o nome do órgão. 
+    // Se courtConfig.name existir, usa ele. Se não, usa o padrão.
+    const orgName = (courtConfig?.name && courtConfig.name.trim() !== '')
+      ? courtConfig.name.toUpperCase()
+      : "SIMULADOR DE SALÁRIO";
+
+    // --- LOGO E CABEÇALHO ---
+    // Logo removida temporariamente pois o arquivo não existe
+    // try { ... } catch (e) { ... }
+
+    // Nome do Site e URL (Marca no topo direito)
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(37, 99, 235); // Azul (Secondary)
+    doc.text("Salário do Servidor", 195, 18, { align: "right" });
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    doc.text("www.salariodoservidor.com.br", 195, 23, { align: "right" });
+
+    // Nome do Órgão (Centralizado)
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
-    doc.text("PODER JUDICIÁRIO", 105, 15, { align: "center" });
-    doc.text("JUSTIÇA MILITAR DA UNIÃO", 105, 22, { align: "center" });
+    doc.setTextColor(0, 0, 0);
+    doc.text(orgName, 105, 25, { align: "center" });
+
+    // Detalhes do Servidor
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`Demonstrativo de Pagamento Simulado - Ref: ${state.mesRef}/${state.anoRef}`, 105, 30, { align: "center" });
-    doc.text(`Servidor: ${state.nome || "SERVIDOR SIMULADO"}`, 14, 40);
+    doc.text(`Demonstrativo de Pagamento Simulado - Ref: ${state.mesRef}/${state.anoRef}`, 105, 35, { align: "center" });
+    doc.text(`Servidor: ${state.nome || "SERVIDOR SIMULADO"}`, 14, 45);
 
+    // --- TABELA ---
     const tableBody = resultRows.map(row => [
       row.type === 'C' ? 'C' : 'D',
       row.label,
@@ -277,7 +339,7 @@ export default function Calculator() {
     (doc as any).autoTable({
       head: [['TIPO', 'RUBRICA', 'PROVENTOS', 'DESCONTOS']],
       body: tableBody,
-      startY: 48,
+      startY: 50,
       theme: 'grid',
       headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold' },
       columnStyles: {
@@ -304,13 +366,28 @@ export default function Calculator() {
       const splitObs = doc.splitTextToSize(`OBS: ${state.observacoes}`, 180);
       doc.text(splitObs, 14, finalY + 10);
     }
-    doc.save(`Holerite_${state.mesRef}_${state.anoRef}.pdf`);
+
+    // --- DISCLAIMER (AVISO LEGAL) ---
+    const pageHeight = doc.internal.pageSize.height;
+    doc.setFontSize(7);
+    doc.setTextColor(150);
+    const disclaimerText = "AVISO LEGAL: Os dados desta simulação são meramente ilustrativos, não possuem valor legal e podem conter imprecisões. Os cálculos oficiais devem ser sempre confirmados junto à unidade de pagamento do órgão competente.";
+    const splitDisclaimer = doc.splitTextToSize(disclaimerText, 180);
+    doc.text(splitDisclaimer, 105, pageHeight - 15, { align: "center" });
+
+    // Forçando download manual para garantir nome correto
+    const pdfBlob = doc.output('blob');
+    saveAs(pdfBlob, `Holerite_${state.mesRef}_${state.anoRef}.pdf`);
   };
 
   const handleExportExcel = () => {
+    const orgName = (courtConfig?.name && courtConfig.name.trim() !== '')
+      ? courtConfig.name.toUpperCase()
+      : "SIMULADOR DE SALÁRIO";
+
     const wb = XLSX.utils.book_new();
     const wsData = [
-      ["PODER JUDICIÁRIO - JUSTIÇA MILITAR DA UNIÃO"],
+      [orgName],
       [`SIMULAÇÃO DE SALÁRIO - REF: ${state.mesRef}/${state.anoRef}`],
       [`NOME: ${state.nome}`],
       [""],
@@ -330,10 +407,40 @@ export default function Calculator() {
       wsData.push([""]);
       wsData.push(["OBS:", state.observacoes]);
     }
+
+    // Disclaimer no Excel
+    wsData.push([""]);
+    wsData.push(["AVISO LEGAL:", "Os dados desta simulação são meramente ilustrativos e não possuem valor legal. Confirme sempre com o órgão oficial."]);
+
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     ws['!cols'] = [{ wch: 5 }, { wch: 40 }, { wch: 15 }, { wch: 15 }];
     XLSX.utils.book_append_sheet(wb, ws, "Holerite");
-    XLSX.writeFile(wb, `Holerite_${state.mesRef}.xlsx`);
+
+    // Forçando download manual para garantir nome correto do arquivo
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const excelBlob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(excelBlob, `Holerite_${state.mesRef}_${state.anoRef}.xlsx`);
+  };
+
+
+
+  // Funções para abrir modal de doação antes de exportar
+  const initiateExportPDF = () => {
+    setPendingExportType('pdf');
+    setDonationModalOpen(true);
+  };
+
+  const initiateExportExcel = () => {
+    setPendingExportType('excel');
+    setDonationModalOpen(true);
+  };
+
+  const handleDonationComplete = () => {
+    if (pendingExportType === 'pdf') {
+      handleExportPDF();
+    } else {
+      handleExportExcel();
+    }
   };
 
   const currentTables = getTablesForPeriod(state.periodo, courtConfig || undefined);
@@ -352,7 +459,7 @@ export default function Calculator() {
       {/* Header and Title */}
       <div className="md:flex md:items-center md:justify-between mb-8">
         <div className="flex items-center gap-4 mb-4 md:mb-0">
-          <button onClick={() => navigate('/')} className="bg-white dark:bg-slate-800 p-2 rounded-xl text-slate-500 hover:text-secondary card-shadow transition-colors">
+          <button onClick={() => navigate('/')} className="bg-white dark:bg-slate-800 p-2 rounded-xl text-slate-500 hover:text-secondary shadow-sm border border-slate-200 dark:border-slate-700 transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div>
@@ -366,11 +473,11 @@ export default function Calculator() {
           </div>
         </div>
 
-        <div className="flex gap-4">
+        <div className="w-full md:w-96">
           <input
             type="text"
             placeholder="Nome para impressão (Opcional)"
-            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-secondary outline-none card-shadow"
+            className={`${styles.input} w-full`}
             value={state.nome}
             onChange={e => {
               const val = e.target.value;
@@ -381,24 +488,21 @@ export default function Calculator() {
               }
             }}
           />
-          <button onClick={handleExportPDF} className="bg-slate-800 hover:bg-slate-900 text-white p-3 rounded-xl card-shadow transition-colors" title="Baixar PDF">
-            <FileText className="w-5 h-5" />
-          </button>
         </div>
       </div>
 
       {/* Global Config Card */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 card-shadow mb-8 relative overflow-hidden">
+      <div className={`${styles.card} mb-8 relative overflow-hidden`}>
         <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/5 rounded-full -mr-10 -mt-10 blur-2xl"></div>
-        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+        <h3 className={styles.sectionTitle}>
           <Settings className="w-4 h-4" />
           Configurações Globais
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Ref. Salarial</label>
+            <label className={styles.label}>Ref. Salarial</label>
             <select
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-secondary outline-none transition-all"
+              className={styles.input}
               value={state.periodo}
               onChange={(e) => update('periodo', Number(e.target.value))}
             >
@@ -410,10 +514,10 @@ export default function Calculator() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Mês de Referência (PDF)</label>
+            <label className={styles.label}>Mês de Referência (PDF)</label>
             <div className="flex gap-2">
               <select
-                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-secondary outline-none transition-all"
+                className={styles.input}
                 value={state.mesRef}
                 onChange={e => update('mesRef', e.target.value)}
               >
@@ -423,16 +527,16 @@ export default function Calculator() {
               </select>
               <input
                 type="number"
-                className="w-24 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-secondary outline-none transition-all"
+                className={`${styles.input} w-24`}
                 value={state.anoRef}
                 onChange={e => update('anoRef', Number(e.target.value))}
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Tipo de Cálculo</label>
+            <label className={styles.label}>Tipo de Cálculo</label>
             <select
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-secondary outline-none transition-all"
+              className={styles.input}
               value={state.tipoCalculo}
               onChange={handleTipoCalculoChange}
             >
@@ -450,44 +554,49 @@ export default function Calculator() {
 
         {/* Column 1: Fixed Earnings */}
         <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 card-shadow">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-              <span className="material-symbols-outlined text-lg">attach_money</span>Rendimentos Fixos
+          <div className={styles.card}>
+            <h3 className={styles.sectionTitle}>
+              <DollarSign className="w-4 h-4" />Rendimentos Fixos
             </h3>
 
-            {/* Cargo */}
-            <div className="mb-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Cargo</label>
-                  <select className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm" value={state.cargo} onChange={e => update('cargo', e.target.value)}>
-                    <option value="tec">Técnico</option>
-                    <option value="analista">Analista</option>
-                  </select>
+            {/* Cargo Grouped Box */}
+            <div className={styles.innerBox}>
+              <h4 className={styles.innerBoxTitle}>
+                Dados Funcionais
+              </h4>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={styles.label}>Cargo</label>
+                    <select className={styles.input} value={state.cargo} onChange={e => update('cargo', e.target.value)}>
+                      <option value="tec">Técnico</option>
+                      <option value="analista">Analista</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={styles.label}>Classe/Padrão</label>
+                    <select className={styles.input} value={state.padrao} onChange={e => update('padrao', e.target.value)}>
+                      {Object.keys(currentTables.salario[state.cargo]).map(p => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Classe/Padrão</label>
-                  <select className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm" value={state.padrao} onChange={e => update('padrao', e.target.value)}>
-                    {Object.keys(currentTables.salario[state.cargo]).map(p => (
-                      <option key={p} value={p}>{p}</option>
+                  <label className={styles.label}>FC / CJ</label>
+                  <select className={styles.input} value={state.funcao} onChange={e => update('funcao', e.target.value)}>
+                    <option value="0">Sem Função / Manual</option>
+                    {Object.keys(currentTables.funcoes).map(f => (
+                      <option key={f} value={f}>{f.toUpperCase()} - {formatCurrency(currentTables.funcoes[f])}</option>
                     ))}
                   </select>
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">FC / CJ</label>
-                <select className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm" value={state.funcao} onChange={e => update('funcao', e.target.value)}>
-                  <option value="0">Sem Função / Manual</option>
-                  {Object.keys(currentTables.funcoes).map(f => (
-                    <option key={f} value={f}>{f.toUpperCase()} - {formatCurrency(currentTables.funcoes[f])}</option>
-                  ))}
-                </select>
-              </div>
             </div>
 
             {/* AQ Section */}
-            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 mb-4 border border-slate-100 dark:border-slate-700">
-              <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-3 flex justify-between">
+            <div className={styles.innerBox}>
+              <h4 className={styles.innerBoxTitle}>
                 Adicional Qualificação
                 <span className="text-[10px] bg-secondary/10 text-secondary px-2 py-0.5 rounded-full">{isNovoAQ ? 'LEI 15.292/2026' : 'REGRA ATUAL'}</span>
               </h4>
@@ -495,8 +604,8 @@ export default function Calculator() {
               {isNovoAQ ? (
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs text-slate-500 block mb-1">Títulos (Base: VR)</label>
-                    <select className="w-full rounded-lg border-slate-200 text-sm py-1.5" value={state.aqTituloVR} onChange={e => update('aqTituloVR', Number(e.target.value))}>
+                    <label className={styles.label}>Títulos (Base: VR)</label>
+                    <select className={styles.input} value={state.aqTituloVR} onChange={e => update('aqTituloVR', Number(e.target.value))}>
                       <option value={0}>Nenhum</option>
                       <option value={1}>1x Esp. (1 VR)</option>
                       <option value={2}>2x Esp. (2 VR)</option>
@@ -505,8 +614,8 @@ export default function Calculator() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs text-slate-500 block mb-1">Treinamento</label>
-                    <select className="w-full rounded-lg border-slate-200 text-sm py-1.5" value={state.aqTreinoVR} onChange={e => update('aqTreinoVR', Number(e.target.value))}>
+                    <label className={styles.label}>Treinamento</label>
+                    <select className={styles.input} value={state.aqTreinoVR} onChange={e => update('aqTreinoVR', Number(e.target.value))}>
                       <option value={0}>0h</option>
                       <option value={0.2}>120h (0.2 VR)</option>
                       <option value={0.4}>240h (0.4 VR)</option>
@@ -517,8 +626,8 @@ export default function Calculator() {
               ) : (
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs text-slate-500 block mb-1">Títulos (Base: VB)</label>
-                    <select className="w-full rounded-lg border-slate-200 text-sm py-1.5" value={state.aqTituloPerc} onChange={e => update('aqTituloPerc', Number(e.target.value))}>
+                    <label className={styles.label}>Títulos (Base: VB)</label>
+                    <select className={styles.input} value={state.aqTituloPerc} onChange={e => update('aqTituloPerc', Number(e.target.value))}>
                       <option value={0}>Nenhum</option>
                       <option value={0.05}>Graduação (5%)</option>
                       <option value={0.075}>Especialização (7.5%)</option>
@@ -527,8 +636,8 @@ export default function Calculator() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs text-slate-500 block mb-1">Treinamento</label>
-                    <select className="w-full rounded-lg border-slate-200 text-sm py-1.5" value={state.aqTreinoPerc} onChange={e => update('aqTreinoPerc', Number(e.target.value))}>
+                    <label className={styles.label}>Treinamento</label>
+                    <select className={styles.input} value={state.aqTreinoPerc} onChange={e => update('aqTreinoPerc', Number(e.target.value))}>
                       <option value={0}>0h</option>
                       <option value={0.01}>120h (1%)</option>
                       <option value={0.02}>240h (2%)</option>
@@ -540,40 +649,51 @@ export default function Calculator() {
             </div>
 
             {/* Accordions for Extras */}
-            <div className="space-y-2">
-              <Accordion title="Gratificação (GAE/GAS)" className="bg-amber-50 rounded-lg" headerClassName="px-4 py-3 text-amber-900 font-bold text-sm" contentClassName="px-4 py-3 border-t border-amber-100">
-                <select className="w-full rounded border-amber-200 text-sm mb-2" value={state.gratEspecificaTipo} onChange={e => update('gratEspecificaTipo', e.target.value)}>
+            <div className="space-y-3">
+              <Accordion title="Gratificação (GAE/GAS)" className={styles.accordionWrapper} headerClassName={styles.accordionHeader} contentClassName={styles.accordionContent}>
+                <select className={`${styles.input} mb-4`} value={state.gratEspecificaTipo} onChange={e => update('gratEspecificaTipo', e.target.value)}>
                   <option value="0">Nenhuma</option>
                   <option value="gae">GAE (Oficial de Justiça)</option>
                   <option value="gas">GAS (Agente de Polícia)</option>
                 </select>
-                <label className="flex items-center gap-2 text-xs text-amber-900">
-                  <input type="checkbox" checked={state.incidirPSSGrat} onChange={e => update('incidirPSSGrat', e.target.checked)} className="rounded text-amber-600" />
+                <label className={styles.checkboxLabel}>
+                  <input type="checkbox" checked={state.incidirPSSGrat} onChange={e => update('incidirPSSGrat', e.target.checked)} className={styles.checkbox} />
                   Incidir PSS?
                 </label>
+                {state.gratEspecificaTipo !== '0' && (
+                  <div className={styles.internalTotalWrapper}>
+                    <span className={styles.internalTotalLabel}>Total Gratificação</span>
+                    <span className={styles.internalTotalValue}>{formatCurrency(state.gratEspecificaValor)}</span>
+                  </div>
+                )}
               </Accordion>
 
-              <Accordion title="Vantagens Pessoais" className="bg-rose-50 rounded-lg" headerClassName="px-4 py-3 text-rose-900 font-bold text-sm" contentClassName="px-4 py-3 border-t border-rose-100 space-y-2">
+              <Accordion title="Vantagens Pessoais" className={styles.accordionWrapper} headerClassName={styles.accordionHeader} contentClassName={`${styles.accordionContent} space-y-4`}>
                 <div>
-                  <label className="text-[10px] text-rose-800 uppercase font-bold">VPNI (Lei 9.527)</label>
-                  <input type="number" className="w-full rounded border-rose-200 text-sm" value={state.vpni_lei} onChange={e => update('vpni_lei', Number(e.target.value))} />
+                  <label className={styles.label}>VPNI (Lei 9.527)</label>
+                  <input type="number" className={styles.input} value={state.vpni_lei} onChange={e => update('vpni_lei', Number(e.target.value))} />
                 </div>
                 <div>
-                  <label className="text-[10px] text-rose-800 uppercase font-bold">VPNI (Decisão)</label>
-                  <input type="number" className="w-full rounded border-rose-200 text-sm" value={state.vpni_decisao} onChange={e => update('vpni_decisao', Number(e.target.value))} />
+                  <label className={styles.label}>VPNI (Decisão)</label>
+                  <input type="number" className={styles.input} value={state.vpni_decisao} onChange={e => update('vpni_decisao', Number(e.target.value))} />
                 </div>
                 <div>
-                  <label className="text-[10px] text-rose-800 uppercase font-bold">ATS (Anuênios)</label>
-                  <input type="number" className="w-full rounded border-rose-200 text-sm" value={state.ats} onChange={e => update('ats', Number(e.target.value))} />
+                  <label className={styles.label}>ATS (Anuênios)</label>
+                  <input type="number" className={styles.input} value={state.ats} onChange={e => update('ats', Number(e.target.value))} />
                 </div>
               </Accordion>
 
-              <Accordion title="Abono de Permanência" className="bg-green-50 rounded-lg" headerClassName="px-4 py-3 text-green-900 font-bold text-sm" contentClassName="px-4 py-3 border-t border-green-100">
-                <label className="flex items-center gap-2 text-sm text-green-900 cursor-pointer">
-                  <input type="checkbox" checked={state.recebeAbono} onChange={e => update('recebeAbono', e.target.checked)} className="rounded text-green-600" />
+              <Accordion title="Abono de Permanência" className={styles.accordionWrapper} headerClassName={styles.accordionHeader} contentClassName={styles.accordionContent}>
+                <label className={styles.checkboxLabel}>
+                  <input type="checkbox" checked={state.recebeAbono} onChange={e => update('recebeAbono', e.target.checked)} className={styles.checkbox} />
                   Recebo Abono?
                 </label>
-                {state.recebeAbono && <p className="text-xs text-green-700 mt-1 font-bold">Valor: {formatCurrency(state.abonoPermanencia)}</p>}
+                {state.recebeAbono && (
+                  <div className={styles.internalTotalWrapper}>
+                    <span className={styles.internalTotalLabel}>Total Abono</span>
+                    <span className={styles.internalTotalValue}>{formatCurrency(state.abonoPermanencia)}</span>
+                  </div>
+                )}
               </Accordion>
             </div>
 
@@ -582,133 +702,134 @@ export default function Calculator() {
 
         {/* Column 2: Variable Earnings */}
         <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 card-shadow">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-              <span className="material-symbols-outlined text-lg">add_circle</span>Rendimentos Variáveis
+          <div className={styles.card}>
+            <h3 className={styles.sectionTitle}>
+              <PlusCircle className="w-4 h-4" />Rendimentos Variáveis
             </h3>
 
             <div className="space-y-3">
 
               {/* Férias */}
-              <Accordion title="Férias" className="bg-white border border-slate-200 rounded-xl" headerClassName="px-4 py-3 font-bold text-sm text-slate-700" contentClassName="p-4 border-t border-slate-100">
-                <label className="flex items-center gap-2 mb-3 text-xs font-bold text-secondary uppercase cursor-pointer">
-                  <input type="checkbox" checked={state.manualFerias} onChange={e => update('manualFerias', e.target.checked)} className="rounded text-secondary" />
-                  Editar Valor
+              <Accordion title="Férias" className={styles.accordionWrapper} headerClassName={styles.accordionHeader} contentClassName={styles.accordionContent}>
+                <label className={`${styles.checkboxLabel} mb-3`}>
+                  <input type="checkbox" checked={state.manualFerias} onChange={e => update('manualFerias', e.target.checked)} className={styles.checkbox} />
+                  Editar Manualmente
                 </label>
                 <input
-                  className={`w-full rounded-lg border-slate-200 text-sm mb-3 ${state.manualFerias ? 'bg-white' : 'bg-slate-50 text-slate-500'}`}
+                  className={`${styles.input} mb-3 ${!state.manualFerias ? 'bg-slate-50 text-slate-400' : ''}`}
                   value={state.ferias1_3}
                   onChange={e => update('ferias1_3', Number(e.target.value))}
                   readOnly={!state.manualFerias}
                   type="number"
                 />
-                <button onClick={handleCalcFerias} className="w-full bg-secondary/10 text-secondary text-xs font-bold py-2 rounded-lg hover:bg-secondary/20 transition mb-3">
+                <button onClick={handleCalcFerias} className={`${styles.actionButton} mb-3`}>
                   Calcular 1/3 Automático
                 </button>
-                <label className="flex items-center gap-2 text-xs text-slate-600">
-                  <input type="checkbox" checked={state.feriasAntecipadas} onChange={e => update('feriasAntecipadas', e.target.checked)} className="rounded text-secondary" />
+                <label className={styles.checkboxLabel}>
+                  <input type="checkbox" checked={state.feriasAntecipadas} onChange={e => update('feriasAntecipadas', e.target.checked)} className={styles.checkbox} />
                   Recebi mês passado? (Desconto)
                 </label>
               </Accordion>
 
               {/* 13º Salário */}
-              <Accordion title="13º Salário (Adiantamento)" className="bg-white border border-slate-200 rounded-xl" headerClassName="px-4 py-3 font-bold text-sm text-slate-700" contentClassName="p-4 border-t border-slate-100">
+              <Accordion title="13º Salário (Adiantamento)" className={styles.accordionWrapper} headerClassName={styles.accordionHeader} contentClassName={styles.accordionContent}>
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   <div>
-                    <label className="text-[10px] text-slate-400 font-bold uppercase">Vencimento</label>
-                    <input type="number" className="w-full rounded border-slate-200 text-sm" value={state.adiant13Venc} onChange={e => update('adiant13Venc', Number(e.target.value))} readOnly={!state.manualAdiant13} />
+                    <label className={styles.label}>Vencimento</label>
+                    <input type="number" className={styles.input} value={state.adiant13Venc} onChange={e => update('adiant13Venc', Number(e.target.value))} readOnly={!state.manualAdiant13} />
                   </div>
                   <div>
-                    <label className="text-[10px] text-slate-400 font-bold uppercase">FC/CJ</label>
-                    <input type="number" className="w-full rounded border-slate-200 text-sm" value={state.adiant13FC} onChange={e => update('adiant13FC', Number(e.target.value))} readOnly={!state.manualAdiant13} />
+                    <label className={styles.label}>FC/CJ</label>
+                    <input type="number" className={styles.input} value={state.adiant13FC} onChange={e => update('adiant13FC', Number(e.target.value))} readOnly={!state.manualAdiant13} />
                   </div>
                 </div>
-                <button onClick={handleCalc13Manual} className="w-full bg-slate-100 text-slate-600 text-xs font-bold py-2 rounded-lg hover:bg-slate-200 transition">
+                <button onClick={handleCalc13Manual} className={styles.actionButton}>
                   Calcular Automático
                 </button>
-                <div className="mt-3 flex gap-2">
-                  <label className="text-xs flex items-center gap-1 cursor-pointer">
-                    <input type="checkbox" checked={state.manualAdiant13} onChange={e => update('manualAdiant13', e.target.checked)} className="rounded text-secondary" />
-                    Manual
+                <div className="mt-3">
+                  <label className={styles.checkboxLabel}>
+                    <input type="checkbox" checked={state.manualAdiant13} onChange={e => update('manualAdiant13', e.target.checked)} className={styles.checkbox} />
+                    Editar Manualmente
                   </label>
                 </div>
               </Accordion>
 
               {/* Horas Extras */}
-              <Accordion title="Horas Extras" className="bg-white border border-slate-200 rounded-xl" headerClassName="px-4 py-3 font-bold text-sm text-slate-700" contentClassName="p-4 border-t border-slate-100">
-                <div className="flex items-center justify-between mb-3">
-                  <label className="flex items-center gap-2 text-xs">
-                    <input type="checkbox" checked={state.heIsEA} onChange={e => update('heIsEA', e.target.checked)} className="rounded text-secondary" />
+              <Accordion title="Horas Extras" className={styles.accordionWrapper} headerClassName={styles.accordionHeader} contentClassName={styles.accordionContent}>
+                <div className="flex items-center justify-between mb-4">
+                  <label className={styles.checkboxLabel}>
+                    <input type="checkbox" checked={state.heIsEA} onChange={e => update('heIsEA', e.target.checked)} className={styles.checkbox} />
                     Pagamento como EA?
                   </label>
-                  <label className="flex items-center gap-2 text-xs font-bold text-secondary uppercase cursor-pointer">
-                    <input type="checkbox" checked={state.manualBaseHE} onChange={e => update('manualBaseHE', e.target.checked)} className="rounded text-secondary" />
+                  <label className={styles.checkboxLabel}>
+                    <input type="checkbox" checked={state.manualBaseHE} onChange={e => update('manualBaseHE', e.target.checked)} className={styles.checkbox} />
                     Editar manualmente
                   </label>
                 </div>
 
-                <div className="mb-3">
-                  <label className="text-[10px] text-slate-400 font-bold block mb-1">Base de Cálculo HE</label>
+                <div className="mb-4">
+                  <label className={styles.label}>Base de Cálculo HE</label>
                   <input
                     type="number"
-                    className={`w-full rounded-lg border-slate-200 text-sm ${state.manualBaseHE ? 'bg-white' : 'bg-slate-50 text-slate-500'}`}
+                    className={`${styles.input} ${!state.manualBaseHE ? 'bg-slate-50 text-slate-400' : ''}`}
                     value={state.heBase || ''}
                     disabled={!state.manualBaseHE}
                     onChange={e => update('heBase', Number(e.target.value))}
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="grid grid-cols-2 gap-4 mb-3">
                   <div>
-                    <label className="text-[10px] text-slate-400 font-bold block mb-1">Qtd 50%</label>
-                    <input type="number" className="w-full rounded border-slate-200 text-sm" value={state.heQtd50} onChange={e => update('heQtd50', Number(e.target.value))} />
-                    <div className="text-xs text-slate-500 mt-1">{formatCurrency(state.heVal50)}</div>
+                    <label className={styles.label}>Qtd 50%</label>
+                    <input type="number" className={styles.input} value={state.heQtd50} onChange={e => update('heQtd50', Number(e.target.value))} />
+                    <div className="text-[10px] text-slate-400 mt-1 font-mono text-right">{formatCurrency(state.heVal50)}</div>
                   </div>
                   <div>
-                    <label className="text-[10px] text-slate-400 font-bold block mb-1">Qtd 100%</label>
-                    <input type="number" className="w-full rounded border-slate-200 text-sm" value={state.heQtd100} onChange={e => update('heQtd100', Number(e.target.value))} />
-                    <div className="text-xs text-slate-500 mt-1">{formatCurrency(state.heVal100)}</div>
+                    <label className={styles.label}>Qtd 100%</label>
+                    <input type="number" className={styles.input} value={state.heQtd100} onChange={e => update('heQtd100', Number(e.target.value))} />
+                    <div className="text-[10px] text-slate-400 mt-1 font-mono text-right">{formatCurrency(state.heVal100)}</div>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
-                  <span className="text-xs font-bold text-slate-500">Total HE</span>
-                  <span className="text-sm font-bold text-slate-700">{formatCurrency(state.heTotal)}</span>
+                <div className={styles.internalTotalWrapper}>
+                  <span className={styles.internalTotalLabel}>Total HE</span>
+                  <span className={styles.internalTotalValue}>{formatCurrency(state.heTotal)}</span>
                 </div>
               </Accordion>
 
-              {/* Substituição RESTORED */}
-              <Accordion title="Substituição" className="bg-white border border-slate-200 rounded-xl" headerClassName="px-4 py-3 font-bold text-sm text-orange-700" contentClassName="p-4 border-t border-slate-100">
-                <label className="flex items-center gap-2 text-xs mb-3">
-                  <input type="checkbox" checked={state.substIsEA} onChange={e => update('substIsEA', e.target.checked)} className="rounded text-orange-500 focus:ring-orange-500" />
-                  <span className="text-slate-700">Pagamento como EA?</span>
+              {/* Substituição */}
+              <Accordion title="Substituição" className={styles.accordionWrapper} headerClassName={styles.accordionHeader} contentClassName={styles.accordionContent}>
+                <label className={`${styles.checkboxLabel} mb-4`}>
+                  <input type="checkbox" checked={state.substIsEA} onChange={e => update('substIsEA', e.target.checked)} className={styles.checkbox} />
+                  Pagamento como EA?
                 </label>
 
-                <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+                <div className="grid grid-cols-2 gap-y-3 gap-x-4">
                   {['fc1', 'fc2', 'fc3', 'fc4', 'fc5', 'fc6', 'cj1', 'cj2', 'cj3', 'cj4'].map(key => (
-                    <div key={key} className="flex items-center justify-between text-xs">
-                      <span className="text-slate-600 w-8 uppercase">{key.replace(/(\d+)/, '-$1')}</span>
-                      <div className="flex items-center">
-                        <input
-                          type="number"
-                          placeholder="Dias"
-                          className="w-16 h-7 rounded border-slate-200 bg-white text-xs text-center focus:ring-orange-500 focus:border-orange-500"
-                          value={state.substDias[key] || ''}
-                          onChange={e => updateSubstDays(key, Number(e.target.value))}
-                        />
-                      </div>
+                    <div key={key} className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-500 uppercase whitespace-nowrap">{key.replace(/(\d+)/, '-$1')}</span>
+                      <input
+                        type="number"
+                        placeholder="Dias"
+                        className={`${styles.input} w-10 px-0 text-center h-8 py-1 text-xs`}
+                        value={state.substDias[key] || ''}
+                        onChange={e => updateSubstDays(key, Number(e.target.value))}
+                      />
                     </div>
                   ))}
                 </div>
-                <div className="text-right text-xs font-bold text-orange-600 mt-3">Total Estimado: {formatCurrency(state.substTotal)}</div>
+                <div className={styles.internalTotalWrapper}>
+                  <span className={styles.internalTotalLabel}>Total Estimado</span>
+                  <span className={styles.internalTotalValue}>{formatCurrency(state.substTotal)}</span>
+                </div>
               </Accordion>
 
-              {/* Licença Compensatória RESTORED */}
-              <Accordion title="Licença Compensatória" className="bg-white border border-slate-200 rounded-xl" headerClassName="px-4 py-3 font-bold text-sm text-teal-700" contentClassName="p-4 border-t border-slate-100">
-                <div className="space-y-3">
+              {/* Licença Compensatória */}
+              <Accordion title="Licença Compensatória" className={styles.accordionWrapper} headerClassName={styles.accordionHeader} contentClassName={styles.accordionContent}>
+                <div className="space-y-4">
                   <div>
-                    <label className="text-xs text-slate-500 block mb-1">Função Base</label>
-                    <select className="w-full rounded-md border-slate-200 bg-white text-xs" value={state.baseLicenca} onChange={e => update('baseLicenca', e.target.value)}>
+                    <label className={styles.label}>Função Base</label>
+                    <select className={styles.input} value={state.baseLicenca} onChange={e => update('baseLicenca', e.target.value)}>
                       <option value="auto">Minha Função Atual (Titular)</option>
                       <option value="cj4">Substituição de CJ-4</option>
                       <option value="cj3">Substituição de CJ-3</option>
@@ -717,103 +838,103 @@ export default function Calculator() {
                       <option value="fc6">Substituição de FC-6</option>
                     </select>
                   </div>
-                  <label className="flex items-start gap-2 text-xs">
-                    <input type="checkbox" checked={state.incluirAbonoLicenca} onChange={e => update('incluirAbonoLicenca', e.target.checked)} className="rounded text-teal-600 mt-0.5" />
-                    <span className="text-slate-700">Incluir Abono na Base?</span>
+                  <label className={styles.checkboxLabel}>
+                    <input type="checkbox" checked={state.incluirAbonoLicenca} onChange={e => update('incluirAbonoLicenca', e.target.checked)} className={styles.checkbox} />
+                    Incluir Abono na Base?
                   </label>
                   <div>
-                    <label className="text-[10px] text-slate-500 block mb-1">Qtd. Dias a Indenizar</label>
-                    <input type="number" value={state.licencaDias} onChange={e => update('licencaDias', Number(e.target.value))} className="w-full rounded border-slate-200" />
+                    <label className={styles.label}>Qtd. Dias a Indenizar</label>
+                    <input type="number" value={state.licencaDias} onChange={e => update('licencaDias', Number(e.target.value))} className={styles.input} />
                   </div>
                 </div>
-                <div className="mt-3 bg-teal-50 p-2 rounded flex justify-between items-center border border-teal-100">
-                  <span className="text-xs font-medium text-teal-800">Total (Isento)</span>
-                  <span className="text-sm font-bold text-teal-700">{formatCurrency(state.licencaValor)}</span>
+                <div className={styles.internalTotalWrapper}>
+                  <span className={styles.internalTotalLabel}>Total (Isento)</span>
+                  <span className={styles.internalTotalValue}>{formatCurrency(state.licencaValor)}</span>
                 </div>
               </Accordion>
 
               {/* Diárias de Viagem */}
-              <Accordion title="Diárias de Viagem" className="bg-white border border-slate-200 rounded-xl" headerClassName="px-4 py-3 font-bold text-sm text-indigo-700" contentClassName="p-4 border-t border-slate-100">
-                <div className="mb-4 text-center">
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Quantidade de Diárias</label>
-                  <input type="number" step="0.5" className="w-24 text-center rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value={state.diariasQtd} onChange={e => update('diariasQtd', Number(e.target.value))} />
+              <Accordion title="Diárias de Viagem" className={styles.accordionWrapper} headerClassName={styles.accordionHeader} contentClassName={styles.accordionContent}>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className={styles.label}>Qtd Diárias</label>
+                    <input type="number" step="0.5" className={styles.input} value={state.diariasQtd} onChange={e => update('diariasQtd', Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <label className={styles.label}>Embarque</label>
+                    <select className={styles.input} value={state.diariasEmbarque} onChange={e => update('diariasEmbarque', e.target.value)}>
+                      <option value="nao">Não</option>
+                      <option value="metade">Ida OU Volta</option>
+                      <option value="completo">Ida E Volta</option>
+                    </select>
+                  </div>
                 </div>
 
-                <div className="mb-4">
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Adicional de Embarque</label>
-                  <select className="w-full rounded-lg border-slate-200 text-sm" value={state.diariasEmbarque} onChange={e => update('diariasEmbarque', e.target.value)}>
-                    <option value="nao">Não</option>
-                    <option value="metade">Ida OU Volta (50%)</option>
-                    <option value="completo">Ida E Volta (100%)</option>
-                  </select>
-                </div>
-
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 mb-4">
-                  <p className="text-xs font-bold text-indigo-800 mb-2">Abatimentos (Art. 4º)</p>
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700 mb-4">
+                  <p className="text-xs font-bold text-slate-500 uppercase mb-3">Abatimentos (Art. 4º)</p>
                   <div className="space-y-2">
-                    <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
-                      <input type="checkbox" checked={state.diariasExtHospedagem} onChange={e => update('diariasExtHospedagem', e.target.checked)} className="rounded text-indigo-600" />
+                    <label className={styles.checkboxLabel}>
+                      <input type="checkbox" checked={state.diariasExtHospedagem} onChange={e => update('diariasExtHospedagem', e.target.checked)} className={styles.checkbox} />
                       Hospedagem (55%)
                     </label>
-                    <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
-                      <input type="checkbox" checked={state.diariasExtAlimentacao} onChange={e => update('diariasExtAlimentacao', e.target.checked)} className="rounded text-indigo-600" />
+                    <label className={styles.checkboxLabel}>
+                      <input type="checkbox" checked={state.diariasExtAlimentacao} onChange={e => update('diariasExtAlimentacao', e.target.checked)} className={styles.checkbox} />
                       Alimentação (25%)
                     </label>
-                    <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
-                      <input type="checkbox" checked={state.diariasExtTransporte} onChange={e => update('diariasExtTransporte', e.target.checked)} className="rounded text-indigo-600" />
+                    <label className={styles.checkboxLabel}>
+                      <input type="checkbox" checked={state.diariasExtTransporte} onChange={e => update('diariasExtTransporte', e.target.checked)} className={styles.checkbox} />
                       Transporte (20%)
                     </label>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-xs text-slate-500">
-                    <input type="checkbox" checked={state.diariasDescontarAlimentacao} onChange={e => update('diariasDescontarAlimentacao', e.target.checked)} className="rounded text-slate-400" />
+                <div className="space-y-2 mb-4">
+                  <label className={styles.checkboxLabel}>
+                    <input type="checkbox" checked={state.diariasDescontarAlimentacao} onChange={e => update('diariasDescontarAlimentacao', e.target.checked)} className={styles.checkbox} />
                     Restituir Aux. Alimentação?
                   </label>
-                  <label className="flex items-center gap-2 text-xs text-slate-500">
-                    <input type="checkbox" checked={state.diariasDescontarTransporte} onChange={e => update('diariasDescontarTransporte', e.target.checked)} className="rounded text-slate-400" />
+                  <label className={styles.checkboxLabel}>
+                    <input type="checkbox" checked={state.diariasDescontarTransporte} onChange={e => update('diariasDescontarTransporte', e.target.checked)} className={styles.checkbox} />
                     Restituir Aux. Transporte?
                   </label>
                 </div>
 
                 {state.diariasValorTotal > 0 && (
-                  <div className="mt-4 bg-indigo-50/50 rounded-lg p-3 border border-indigo-100">
-                    <h5 className="text-xs font-bold text-indigo-800 mb-2 uppercase border-b border-indigo-200 pb-1">Extrato Estimado</h5>
-                    <div className="space-y-1 text-xs">
-                      <div className="flex justify-between text-slate-600">
+                  <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-100 dark:border-slate-700">
+                    <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-200 dark:border-slate-700 pb-2">Extrato Estimado</h5>
+                    <div className="space-y-1.5 text-xs">
+                      <div className="flex justify-between text-slate-500">
                         <span>(+) Diárias (Bruto)</span>
                         <span>{formatCurrency(state.diariasBruto - (state.diariasEmbarque === 'completo' ? 586.78 : state.diariasEmbarque === 'metade' ? 293.39 : 0))}</span>
                       </div>
-                      <div className="flex justify-between text-slate-600">
+                      <div className="flex justify-between text-slate-500">
                         <span>(+) Adicional de Embarque</span>
                         <span>{formatCurrency(state.diariasEmbarque === 'completo' ? 586.78 : state.diariasEmbarque === 'metade' ? 293.39 : 0)}</span>
                       </div>
 
-                      {/* Estimate of External Deduction (Glosa) */}
                       {(state.diariasExtHospedagem || state.diariasExtAlimentacao || state.diariasExtTransporte) && (
-                        <div className="flex justify-between text-rose-600">
+                        <div className="flex justify-between text-rose-500">
                           <span>(-) Abatimento Benef. Externo</span>
                           <span>- {formatCurrency(state.diariasBruto - state.diariasValorTotal - state.diariasDescAlim - state.diariasDescTransp).replace('R$', '').trim()}</span>
                         </div>
                       )}
 
                       {state.diariasDescontarAlimentacao && (
-                        <div className="flex justify-between text-rose-600">
+                        <div className="flex justify-between text-rose-500">
                           <span>(-) Restituição Aux. Alimentação</span>
                           <span>- {formatCurrency(state.diariasDescAlim)}</span>
                         </div>
                       )}
                       {state.diariasDescontarTransporte && (
-                        <div className="flex justify-between text-rose-600">
+                        <div className="flex justify-between text-rose-500">
                           <span>(-) Restituição Aux. Transporte</span>
                           <span>- {formatCurrency(state.diariasDescTransp)}</span>
                         </div>
                       )}
 
-                      <div className="flex justify-between text-indigo-900 font-bold pt-2 border-t border-indigo-200 mt-2 text-sm">
-                        <span>(=) Total Líquido Diárias</span>
-                        <span>{formatCurrency(state.diariasValorTotal)}</span>
+                      <div className={styles.internalTotalWrapper}>
+                        <span className={styles.internalTotalLabel}>Total Líquido</span>
+                        <span className={styles.internalTotalValue}>{formatCurrency(state.diariasValorTotal)}</span>
                       </div>
                     </div>
                   </div>
@@ -821,11 +942,11 @@ export default function Calculator() {
               </Accordion>
 
               {/* Auxílios Combined & Detailed */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {/* Alimentação */}
-                <Accordion title="Auxílio Alimentação" className="bg-white border border-slate-200 rounded-xl" headerClassName="px-4 py-3 font-bold text-sm text-blue-700" contentClassName="p-4 border-t border-slate-100">
+                <Accordion title="Auxílio Alimentação" className={styles.accordionWrapper} headerClassName={styles.accordionHeader} contentClassName={styles.accordionContent}>
                   <select
-                    className="w-full rounded border-slate-200 text-sm mb-2"
+                    className={styles.input}
                     value={state.auxAlimentacao}
                     onChange={e => update('auxAlimentacao', Number(e.target.value))}
                   >
@@ -845,12 +966,12 @@ export default function Calculator() {
                 </Accordion>
 
                 {/* Pré-Escolar */}
-                <Accordion title="Auxílio Pré-Escolar" className="bg-white border border-slate-200 rounded-xl" headerClassName="px-4 py-3 font-bold text-sm text-blue-700" contentClassName="p-4 border-t border-slate-100">
-                  <div className="grid grid-cols-2 gap-3">
+                <Accordion title="Auxílio Pré-Escolar" className={styles.accordionWrapper} headerClassName={styles.accordionHeader} contentClassName={styles.accordionContent}>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] text-slate-500 block mb-1">Cota</label>
+                      <label className={styles.label}>Cota</label>
                       <select
-                        className="w-full rounded border-slate-200 text-xs"
+                        className={styles.input}
                         value={state.cotaPreEscolar}
                         onChange={e => update('cotaPreEscolar', Number(e.target.value))}
                       >
@@ -867,26 +988,27 @@ export default function Calculator() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-[10px] text-slate-500 block mb-1">Qtd</label>
-                      <input className="w-full rounded border-slate-200 text-xs text-center" type="number" value={state.auxPreEscolarQtd} onChange={e => update('auxPreEscolarQtd', Number(e.target.value))} />
+                      <label className={styles.label}>Qtd</label>
+                      <input className={styles.input} type="number" value={state.auxPreEscolarQtd} onChange={e => update('auxPreEscolarQtd', Number(e.target.value))} />
                     </div>
                   </div>
-                  <div className="mt-2 text-right">
-                    <span className="text-xs font-bold text-blue-800">Total: {formatCurrency(state.auxPreEscolarValor)}</span>
+                  <div className={styles.internalTotalWrapper}>
+                    <span className={styles.internalTotalLabel}>Total</span>
+                    <span className={styles.internalTotalValue}>{formatCurrency(state.auxPreEscolarValor)}</span>
                   </div>
                 </Accordion>
 
                 {/* Transporte */}
-                <Accordion title="Auxílio Transporte" className="bg-white border border-slate-200 rounded-xl" headerClassName="px-4 py-3 font-bold text-sm text-blue-700" contentClassName="p-4 border-t border-slate-100">
-                  <label className="text-[10px] text-slate-500 block mb-1">Valor Mensal (Gasto)</label>
+                <Accordion title="Auxílio Transporte" className={styles.accordionWrapper} headerClassName={styles.accordionHeader} contentClassName={styles.accordionContent}>
+                  <label className={styles.label}>Valor Mensal (Gasto)</label>
                   <input
-                    className="w-full rounded border-slate-200 text-sm"
+                    className={styles.input}
                     type="number"
                     value={state.auxTransporteGasto}
                     onChange={e => update('auxTransporteGasto', Number(e.target.value))}
                   />
                   {state.auxTransporteGasto > 0 && state.auxTransporteValor === 0 && (
-                    <p className="text-[10px] text-red-500 mt-1 font-bold">Cancelado (Desconto &gt; Gasto).</p>
+                    <p className="text-[10px] text-rose-500 mt-2 font-bold uppercase tracking-wide">Cancelado (Desconto &gt; Gasto).</p>
                   )}
                 </Accordion>
               </div>
@@ -896,61 +1018,61 @@ export default function Calculator() {
 
         {/* Column 3: Deductions */}
         <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 card-shadow">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-              <span className="material-symbols-outlined text-lg">horizontal_rule</span>Descontos
+          <div className={styles.card}>
+            <h3 className={styles.sectionTitle}>
+              <Minus className="w-4 h-4" />Descontos
             </h3>
 
-            {/* Section 1: Tabelas de Tributação (Normalized) */}
-            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 mb-4">
-              <h4 className="text-xs font-bold text-slate-500 uppercase mb-3 text-left">Tabelas de Tributação (Vigência)</h4>
-              <div className="grid grid-cols-2 gap-3 mb-3">
+            {/* Section 1: Tabelas de Tributação */}
+            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 rounded-xl p-5 mb-6">
+              <h4 className={styles.label}>Tabelas de Tributação (Vigência)</h4>
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="text-[10px] text-slate-500 block mb-1">Tabela PSS</label>
-                  <select className="w-full rounded-lg border-slate-200 text-sm py-1.5 bg-white focus:ring-secondary focus:border-secondary" value={state.tabelaPSS} onChange={e => update('tabelaPSS', e.target.value)}>
+                  <label className={styles.label}>Tabela PSS</label>
+                  <select className={styles.input} value={state.tabelaPSS} onChange={e => update('tabelaPSS', e.target.value)}>
                     <option value="2026">2026 (Est.)</option>
                     <option value="2025">Portaria MPS/MF 14</option>
                     <option value="2024">2024 (Antiga)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-500 block mb-1">Tabela IR (Lei 11.482)</label>
-                  <select className="w-full rounded-lg border-slate-200 text-sm py-1.5 bg-white focus:ring-secondary focus:border-secondary" value={state.tabelaIR} onChange={e => update('tabelaIR', e.target.value)}>
+                  <label className={styles.label}>Tabela IR</label>
+                  <select className={styles.input} value={state.tabelaIR} onChange={e => update('tabelaIR', e.target.value)}>
                     <option value="2025_maio">Maio/2025</option>
                     <option value="2024_fev">Fev/2024</option>
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] text-slate-500 block mb-1">Dedução Dep. (Lei 9250)</label>
-                  <div className="text-sm font-medium text-slate-700 py-1.5 px-3 bg-white border border-slate-200 rounded-lg">R$ 189,59</div>
+                  <label className={styles.label}>Dedução Dep.</label>
+                  <div className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-500 dark:text-slate-400">R$ 189,59</div>
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-500 block mb-1">Dependentes IR</label>
-                  <input type="number" className="w-full rounded-lg border-slate-200 text-sm py-1.5 text-center focus:ring-secondary focus:border-secondary" value={state.dependentes} onChange={e => update('dependentes', Number(e.target.value))} />
+                  <label className={styles.label}>Dependentes IR</label>
+                  <input type="number" className={styles.input} value={state.dependentes} onChange={e => update('dependentes', Number(e.target.value))} />
                 </div>
               </div>
             </div>
 
-            {/* Section 2: Regime de Previdência (Normalized) */}
-            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 mb-4">
-              <h4 className="text-xs font-bold text-slate-500 uppercase mb-3 text-left">Regime de Previdência / Ingresso</h4>
-              <select className="w-full rounded-lg border-slate-200 text-sm py-2 mb-2 bg-white focus:ring-secondary focus:border-secondary" value={state.regimePrev} onChange={e => update('regimePrev', e.target.value)}>
+            {/* Section 2: Regime de Previdência */}
+            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 rounded-xl p-5 mb-6">
+              <h4 className={styles.label}>Regime de Previdência / Ingresso</h4>
+              <select className={`${styles.input} mb-4`} value={state.regimePrev} onChange={e => update('regimePrev', e.target.value)}>
                 <option value="antigo">Antes de 2013 / Regime Antigo (Integral)</option>
                 <option value="migrado">Antes de 2013 (Migrado - Teto)</option>
                 <option value="novo_antigo">Após 2013 (Integral - Raro)</option>
                 <option value="rpc">Após 2013 (RPC - Teto)</option>
               </select>
-              <label className="flex items-center gap-2 text-xs text-slate-600 mt-2 cursor-pointer">
-                <input type="checkbox" checked={state.pssSobreFC} onChange={e => update('pssSobreFC', e.target.checked)} className="rounded border-slate-300 text-slate-600 focus:ring-slate-200" />
+              <label className={styles.checkboxLabel}>
+                <input type="checkbox" checked={state.pssSobreFC} onChange={e => update('pssSobreFC', e.target.checked)} className={styles.checkbox} />
                 Incidir PSS sobre FC/CJ
               </label>
               {state.regimePrev !== 'antigo' && (
-                <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-200">
+                <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
                   <div>
-                    <label className="text-[10px] text-slate-500 block">Funpresp</label>
-                    <select className="w-full text-xs rounded border-slate-200 focus:ring-secondary focus:border-secondary" value={state.funprespAliq} onChange={e => update('funprespAliq', Number(e.target.value))}>
+                    <label className={styles.label}>Funpresp</label>
+                    <select className={styles.input} value={state.funprespAliq} onChange={e => update('funprespAliq', Number(e.target.value))}>
                       <option value={0}>Não</option>
                       <option value={0.065}>6.5%</option>
                       <option value={0.075}>7.5%</option>
@@ -958,158 +1080,171 @@ export default function Calculator() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-[10px] text-slate-500 block">Facultativa (%)</label>
-                    <input type="number" className="w-full text-xs rounded border-slate-200 focus:ring-secondary focus:border-secondary" value={state.funprespFacul} onChange={e => update('funprespFacul', Number(e.target.value))} />
+                    <label className={styles.label}>Facultativa (%)</label>
+                    <input type="number" className={styles.input} value={state.funprespFacul} onChange={e => update('funprespFacul', Number(e.target.value))} />
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Section 3: Deduções Calculadas (Normalized) */}
-            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 mb-4">
-              <h4 className="text-xs font-bold text-slate-500 uppercase mb-3 text-left">Deduções Calculadas</h4>
+            {/* Section 3: Deduções Calculadas */}
+            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 rounded-xl p-5 mb-6">
+              <h4 className={styles.label}>Deduções Calculadas</h4>
 
-              <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 {/* PSS */}
-                <div className="p-3 border border-slate-200 bg-white rounded-lg">
-                  <span className="block text-[10px] font-bold text-slate-500 mb-1">PSS Mensal (RPPS)</span>
-                  <span className="text-sm font-bold text-red-600">{formatCurrency(state.pssMensal)}</span>
+                <div className="p-4 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+                  <span className={styles.label}>PSS Mensal</span>
+                  <span className={`${styles.valueDisplay} text-rose-600 dark:text-rose-400`}>{formatCurrency(state.pssMensal)}</span>
                 </div>
                 {/* Funpresp */}
-                <div className="p-3 border border-slate-200 bg-white rounded-lg">
-                  <span className="block text-[10px] font-bold text-slate-500 mb-1">Funpresp</span>
-                  <span className="text-sm font-bold text-purple-600">{formatCurrency(state.valFunpresp)}</span>
+                <div className="p-4 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+                  <span className={styles.label}>Funpresp</span>
+                  <span className={`${styles.valueDisplay} text-indigo-600 dark:text-indigo-400`}>{formatCurrency(state.valFunpresp)}</span>
                 </div>
                 {/* IRRF Salário */}
-                <div className="p-3 border border-slate-200 bg-white rounded-lg">
-                  <span className="block text-[10px] font-bold text-slate-500 mb-1">IRRF (Salário)</span>
-                  <span className="text-sm font-bold text-red-600">{formatCurrency(state.irMensal)}</span>
-                </div>
-                {/* IRRF RRA/Ant */}
-                <div className="p-3 border border-slate-200 bg-white rounded-lg">
-                  <span className="block text-[10px] font-bold text-slate-500 mb-1">IRRF (RRA/Ant.)</span>
-                  <span className="text-sm font-bold text-slate-700">{formatCurrency(0)}</span>
+                <div className="p-4 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+                  <span className={styles.label}>IRRF (Salário)</span>
+                  <span className={`${styles.valueDisplay} text-rose-600 dark:text-rose-400`}>{formatCurrency(state.irMensal)}</span>
                 </div>
                 {/* IRRF Férias */}
-                <div className="p-3 border border-slate-200 bg-white rounded-lg">
-                  <span className="block text-[10px] font-bold text-slate-500 mb-1">IRRF Férias</span>
-                  <span className="text-sm font-bold text-red-600">{formatCurrency(state.irFerias)}</span>
+                <div className="p-4 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+                  <span className={styles.label}>IRRF Férias</span>
+                  <span className={`${styles.valueDisplay} text-rose-600 dark:text-rose-400`}>{formatCurrency(state.irFerias)}</span>
                 </div>
                 {/* Cota Transporte */}
-                <div className="p-3 border border-slate-200 bg-white rounded-lg">
-                  <span className="block text-[10px] font-bold text-slate-500 mb-1">Cota-Parte Transporte</span>
-                  <span className="text-sm font-bold text-orange-600">{formatCurrency(state.auxTransporteDesc)}</span>
+                <div className="p-4 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl shadow-sm col-span-2">
+                  <div className="flex justify-between items-center">
+                    <span className={styles.label}>Cota-Parte Transporte</span>
+                    <span className={`${styles.valueDisplay} text-rose-600 dark:text-rose-400`}>{formatCurrency(state.auxTransporteDesc)}</span>
+                  </div>
                 </div>
+                {/* Adicional 1/3 Férias (Antecipado) - Agora Padronizado */}
+                {state.feriasDesc > 0 && (
+                  <div className="p-4 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl shadow-sm col-span-2">
+                    <div className="flex justify-between items-center">
+                      <span className={styles.label}>Adicional 1/3 Férias (Antecipado)</span>
+                      <span className={`${styles.valueDisplay} text-rose-600 dark:text-rose-400`}>{formatCurrency(state.feriasDesc)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Adicional 1/3 Férias (Antecipado) - Full Width */}
-              {state.feriasDesc > 0 && (
-                <div className="mb-3 p-3 bg-white border border-slate-200 rounded-lg">
-                  <span className="block text-[10px] font-bold text-red-700 mb-1">Adicional 1/3 de Férias (Antecipado)</span>
-                  <span className="text-lg font-bold text-red-700">{formatCurrency(state.feriasDesc)}</span>
-                </div>
-              )}
-
               {/* 13º Row */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 border border-slate-200 bg-white rounded-lg">
-                  <span className="block text-[10px] font-bold text-slate-500 mb-1">PSS sobre 13º</span>
-                  <span className="text-sm font-bold text-red-600">{formatCurrency(state.pss13)}</span>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+                  <span className={styles.label}>PSS sobre 13º</span>
+                  <span className={`${styles.valueDisplay} text-rose-600 dark:text-rose-400`}>{formatCurrency(state.pss13)}</span>
                 </div>
-                <div className="p-3 border border-slate-200 bg-white rounded-lg">
-                  <span className="block text-[10px] font-bold text-slate-500 mb-1">IRRF sobre 13º</span>
-                  <span className="text-sm font-bold text-red-600">{formatCurrency(state.ir13)}</span>
+                <div className="p-4 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+                  <span className={styles.label}>IRRF sobre 13º</span>
+                  <span className={`${styles.valueDisplay} text-rose-600 dark:text-rose-400`}>{formatCurrency(state.ir13)}</span>
                 </div>
               </div>
             </div>
 
             {/* Section 4: Outros Descontos (Consignações) */}
-            <div className="mb-4">
-              <h4 className="text-xs font-bold text-slate-500 uppercase mb-3">Outros Descontos (Opcionais)</h4>
-              <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs text-slate-500">Empréstimos</label>
-                  <div className="w-32">
-                    <input type="text" className="w-full rounded border-slate-200 text-xs text-right focus:ring-secondary focus:border-secondary" value={state.emprestimos} onChange={e => update('emprestimos', Number(e.target.value.replace(/\D/g, '') / 100))} />
-                  </div>
+            <div className="mb-6">
+              <h4 className={styles.sectionTitle}>Outros Descontos (Opcionais)</h4>
+              <div className="space-y-4">
+                <div>
+                  <label className={styles.label}>Empréstimos</label>
+                  <input type="text" className={styles.input} value={state.emprestimos} onChange={e => update('emprestimos', Number(e.target.value.replace(/\D/g, '') / 100))} />
                 </div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs text-slate-500">Plano de Saúde</label>
-                  <div className="w-32">
-                    <input type="text" className="w-full rounded border-slate-200 text-xs text-right focus:ring-secondary focus:border-secondary" value={state.planoSaude} onChange={e => update('planoSaude', Number(e.target.value.replace(/\D/g, '') / 100))} />
-                  </div>
+                <div>
+                  <label className={styles.label}>Plano de Saúde</label>
+                  <input type="text" className={styles.input} value={state.planoSaude} onChange={e => update('planoSaude', Number(e.target.value.replace(/\D/g, '') / 100))} />
                 </div>
-                <div className="flex justify-between items-center">
-                  <label className="text-xs text-slate-500">Pensão Alimentícia</label>
-                  <div className="w-32">
-                    <input type="text" className="w-full rounded border-slate-200 text-xs text-right focus:ring-secondary focus:border-secondary" value={state.pensao} onChange={e => update('pensao', Number(e.target.value.replace(/\D/g, '') / 100))} />
-                  </div>
+                <div>
+                  <label className={styles.label}>Pensão Alimentícia</label>
+                  <input type="text" className={styles.input} value={state.pensao} onChange={e => update('pensao', Number(e.target.value.replace(/\D/g, '') / 100))} />
                 </div>
               </div>
             </div>
 
-
-            {/* Section 5: 13º Salário (Normalized) */}
-            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 mb-4">
-              <h4 className="text-xs font-bold text-slate-500 uppercase mb-3 text-left">Décimo Terceiro (Novembro)</h4>
-              <label className="flex items-center gap-2 text-xs text-slate-600 mb-1 cursor-pointer">
-                <input type="checkbox" checked={state.manualDecimoTerceiroNov} onChange={e => update('manualDecimoTerceiroNov', e.target.checked)} className="rounded border-slate-300 text-slate-600 focus:ring-secondary" />
-                Editar Primeira Parcela do 13º?
+            {/* Section 5: 13º Salário (Nov) */}
+            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 rounded-xl p-5 mb-6">
+              <h4 className={styles.label}>Décimo Terceiro (Novembro)</h4>
+              <label className={styles.checkboxLabel}>
+                <input type="checkbox" checked={state.manualDecimoTerceiroNov} onChange={e => update('manualDecimoTerceiroNov', e.target.checked)} className={styles.checkbox} />
+                Editar Manualmente
               </label>
-              {!state.manualDecimoTerceiroNov && <p className="text-[10px] text-slate-400 italic ml-6">* Automático (50%)</p>}
+              {!state.manualDecimoTerceiroNov && <p className="text-[10px] text-slate-400 mt-2 uppercase font-bold tracking-wide">* Automático (50%)</p>}
               {state.manualDecimoTerceiroNov && (
-                <div className="grid grid-cols-2 gap-2 mt-2 ml-6">
-                  <input type="number" placeholder="Venc" className="rounded border-slate-200 text-xs py-1 focus:ring-secondary focus:border-secondary" value={state.decimoTerceiroNovVenc} onChange={e => update('decimoTerceiroNovVenc', Number(e.target.value))} />
-                  <input type="number" placeholder="FC" className="rounded border-slate-200 text-xs py-1 focus:ring-secondary focus:border-secondary" value={state.decimoTerceiroNovFC} onChange={e => update('decimoTerceiroNovFC', Number(e.target.value))} />
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className={styles.label}>Vencimento</label>
+                    <input type="number" className={styles.input} value={state.decimoTerceiroNovVenc} onChange={e => update('decimoTerceiroNovVenc', Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <label className={styles.label}>FC/CJ</label>
+                    <input type="number" className={styles.input} value={state.decimoTerceiroNovFC} onChange={e => update('decimoTerceiroNovFC', Number(e.target.value))} />
+                  </div>
                 </div>
               )}
-            </div>
-
-            {/* Rubricas Adicionais (Bottom) */}
-            <div className="mt-6 pt-6 border-t border-slate-100">
-              <button
-                onClick={addRubrica}
-                className="w-full py-3 bg-secondary text-white rounded-xl text-xs font-bold uppercase hover:bg-secondary/90 shadow-lg shadow-secondary/20 transition-all flex items-center justify-center gap-2"
-              >
-                <Plus className="h-4 w-4" /> Adicionar Rubrica (Manual)
-              </button>
-
-              <div className="space-y-2 mt-3">
-                {state.rubricasExtras.filter(r => r.tipo === 'D').map((rubrica) => (
-                  <div key={rubrica.id} className="flex gap-2 items-center bg-slate-50 p-2 rounded-lg border border-slate-100">
-                    <input
-                      type="text"
-                      placeholder="Descrição"
-                      className="flex-1 rounded-md border-slate-200 text-xs py-1.5 focus:ring-secondary focus:border-secondary bg-white"
-                      value={rubrica.descricao}
-                      onChange={e => updateRubrica(rubrica.id, 'descricao', e.target.value)}
-                    />
-                    <input
-                      type="number"
-                      placeholder="Valor"
-                      className="w-24 rounded-md border-slate-200 text-xs py-1.5 text-right focus:ring-secondary focus:border-secondary bg-white"
-                      value={rubrica.valor || ''}
-                      onChange={e => updateRubrica(rubrica.id, 'valor', Number(e.target.value))}
-                    />
-                    <button onClick={() => removeRubrica(rubrica.id)} className="text-slate-400 hover:text-red-500 p-1.5 rounded-md transition-colors">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
             </div>
 
           </div>
         </div>
       </div>
 
-      {/* Observações Section (Restored) */}
-      <section className="mt-8 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 card-shadow">
-        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+      {/* Rubricas Adicionais (Moved here) */}
+      <div className={`${styles.card} mt-8`}>
+        <h3 className={styles.sectionTitle}>
+          <List className="w-4 h-4" />Rubricas Manuais (Créditos / Débitos)
+        </h3>
+        <button
+          onClick={addRubrica}
+          className="w-full py-3 bg-secondary text-white rounded-xl text-xs font-bold uppercase hover:bg-secondary/90 shadow-lg shadow-secondary/20 transition-all flex items-center justify-center gap-2 mb-4"
+        >
+          <Plus className="h-4 w-4" /> Adicionar Crédito/Débito (Manual)
+        </button>
+
+        <div className="space-y-3">
+          {state.rubricasExtras.map((rubrica) => (
+            <div key={rubrica.id} className="flex gap-2 items-center flex-wrap md:flex-nowrap">
+              <div className="w-full md:w-32">
+                <select
+                  className={styles.input}
+                  value={rubrica.tipo}
+                  onChange={e => updateRubrica(rubrica.id, 'tipo', e.target.value)}
+                >
+                  <option value="C">Crédito (+)</option>
+                  <option value="D">Débito (-)</option>
+                </select>
+              </div>
+              <input
+                type="text"
+                placeholder="Descrição"
+                className={`${styles.input} flex-1`}
+                value={rubrica.descricao}
+                onChange={e => updateRubrica(rubrica.id, 'descricao', e.target.value)}
+              />
+              <input
+                type="number"
+                placeholder="Valor"
+                className={`${styles.input} w-full md:w-32 text-right`}
+                value={rubrica.valor || ''}
+                onChange={e => updateRubrica(rubrica.id, 'valor', Number(e.target.value))}
+              />
+              <button onClick={() => removeRubrica(rubrica.id)} className="text-slate-400 hover:text-red-500 p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ))}
+          {state.rubricasExtras.length === 0 && (
+            <p className="text-center text-sm text-slate-400 italic py-4">Nenhuma rubrica manual adicionada.</p>
+          )}
+        </div>
+      </div>
+
+      {/* Observações Section */}
+      <section className={`${styles.card} mt-8`}>
+        <h3 className={styles.sectionTitle}>
           <FileText className="h-4 w-4" /> Observações / Notas
         </h3>
         <textarea
-          className="w-full rounded-xl border-slate-200 bg-slate-50 text-sm h-24 placeholder-slate-400 focus:border-secondary focus:ring-secondary resize-none p-4"
+          className="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm h-24 placeholder-slate-400 focus:border-secondary focus:ring-2 focus:ring-secondary/20 resize-none p-4 outline-none transition-all"
           placeholder="Digite aqui anotações sobre este cálculo para sair na impressão..."
           value={state.observacoes}
           onChange={e => update('observacoes', e.target.value)}
@@ -1118,37 +1253,37 @@ export default function Calculator() {
 
       {/* Results Deck */}
       <div className="mt-8 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden mb-20">
-        <div className="bg-slate-800 p-4 flex justify-between items-center">
-          <h3 className="text-white font-bold text-lg uppercase tracking-wider flex items-center gap-2">
-            <span className="material-symbols-outlined">receipt_long</span> Detalhamento
+        <div className="bg-slate-800 p-6 flex justify-between items-center">
+          <h3 className="text-white font-bold text-lg uppercase tracking-wider flex items-center gap-3">
+            <Receipt className="w-5 h-5" /> Detalhamento
           </h3>
-          <span className="bg-white/10 text-white px-3 py-1 rounded-full text-xs font-mono">Ref: {state.mesRef}/{state.anoRef}</span>
+          <span className="bg-white/10 text-white px-3 py-1 rounded-full text-xs font-mono border border-white/20">Ref: {state.mesRef}/{state.anoRef}</span>
         </div>
 
         <div className="p-0">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-100">
+            <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700">
               <tr>
-                <th className="px-6 py-3 text-left font-bold text-slate-500 uppercase text-xs">Rubrica</th>
-                <th className="px-6 py-3 text-right font-bold text-slate-500 uppercase text-xs">Valor</th>
+                <th className="px-6 py-4 text-left font-bold text-slate-500 uppercase text-xs tracking-wider">Rubrica</th>
+                <th className="px-6 py-4 text-right font-bold text-slate-500 uppercase text-xs tracking-wider">Valor</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
               {resultRows.map((row, idx) => (
-                <tr key={idx} className="hover:bg-slate-50 transition">
-                  <td className={`px-6 py-3 font-medium ${row.type === 'C' ? 'text-emerald-600' : 'text-rose-500'}`}>
+                <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
+                  <td className={`px-6 py-4 font-medium ${row.type === 'C' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
                     {row.label}
                   </td>
-                  <td className="px-6 py-3 text-right font-mono text-slate-700">{formatCurrency(row.value)}</td>
+                  <td className="px-6 py-4 text-right font-mono text-slate-700 dark:text-slate-200">{formatCurrency(row.value)}</td>
                 </tr>
               ))}
-              <tr className="bg-slate-50/50">
-                <td className="px-6 py-4 font-bold text-slate-800 uppercase">Total Bruto</td>
-                <td className="px-6 py-4 text-right font-bold text-slate-800">{formatCurrency(state.totalBruto)}</td>
+              <tr className="bg-slate-50/50 dark:bg-slate-900/50">
+                <td className="px-6 py-5 font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wide">Total Bruto</td>
+                <td className="px-6 py-5 text-right font-bold text-slate-800 dark:text-slate-100 font-mono">{formatCurrency(state.totalBruto)}</td>
               </tr>
-              <tr className="bg-slate-50/50">
-                <td className="px-6 py-4 font-bold text-rose-600 uppercase">Total Descontos</td>
-                <td className="px-6 py-4 text-right font-bold text-rose-600">{formatCurrency(state.totalDescontos)}</td>
+              <tr className="bg-slate-50/50 dark:bg-slate-900/50">
+                <td className="px-6 py-5 font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wide">Total Descontos</td>
+                <td className="px-6 py-5 text-right font-bold text-rose-600 dark:text-rose-400 font-mono">{formatCurrency(state.totalDescontos)}</td>
               </tr>
             </tbody>
           </table>
@@ -1156,25 +1291,25 @@ export default function Calculator() {
       </div>
 
       {/* Sticky Footer */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 py-4 px-6 z-50 card-shadow">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 py-4 px-6 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="hidden md:block">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Resultado Líquido</p>
-            <p className="text-sm text-slate-500">Considerando todos os descontos legais e opcionais.</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Resultado Líquido</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Considerando todos os descontos legais e opcionais.</p>
           </div>
           <div className="flex items-center gap-6">
 
             <div className="flex items-center gap-2 mr-4">
               <button
-                onClick={handleExportPDF}
-                className="bg-red-500/10 hover:bg-red-500 hover:text-white text-red-600 p-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 font-bold text-xs"
+                onClick={initiateExportPDF}
+                className="bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-600 p-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 font-bold text-xs uppercase tracking-wide"
                 title="Exportar PDF/Holerite"
               >
                 <FileText size={18} /> <span className="hidden sm:inline">PDF</span>
               </button>
               <button
-                onClick={handleExportExcel}
-                className="bg-emerald-500/10 hover:bg-emerald-500 hover:text-white text-emerald-600 p-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 font-bold text-xs"
+                onClick={initiateExportExcel}
+                className="bg-emerald-500/10 hover:bg-emerald-500 hover:text-white text-emerald-600 p-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 font-bold text-xs uppercase tracking-wide"
                 title="Exportar Excel"
               >
                 <Table size={18} /> <span className="hidden sm:inline">Excel</span>
@@ -1182,7 +1317,7 @@ export default function Calculator() {
             </div>
 
             <div className="text-right">
-              <span className="block text-xs font-bold text-slate-400 uppercase mb-1 md:hidden">Líquido</span>
+              <span className="block text-[10px] font-bold text-slate-400 uppercase mb-1 md:hidden">Líquido</span>
               <span className="text-3xl md:text-4xl font-black text-slate-800 dark:text-white tracking-tight brand-gradient-text">
                 {formatCurrency(state.liquido)}
               </span>
@@ -1190,6 +1325,14 @@ export default function Calculator() {
           </div>
         </div>
       </div>
+
+      <DonationModal
+        isOpen={donationModalOpen}
+        onClose={() => setDonationModalOpen(false)}
+        onDownloadReady={handleDonationComplete}
+        exportType={pendingExportType}
+        countdownSeconds={10}
+      />
 
     </div >
   );
