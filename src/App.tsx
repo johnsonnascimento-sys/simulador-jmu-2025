@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Calculator from './pages/Calculator';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
+import ProtectedRoute from './components/ProtectedRoute';
 import Donate from './pages/Donate';
 
 function App() {
@@ -18,7 +19,11 @@ function App() {
 
           {/* Rotas de Login/Admin */}
           <Route path="/login" element={<Login />} />
-          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin" element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
 
           {/* Rotas que USAM o MainLayout (Simulador e Apoiar) */}
           <Route element={<MainLayout />}>
