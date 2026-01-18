@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import {
   Calculator, TrendingUp, ShieldCheck, FileText, ArrowRight,
   Menu, X, ChevronRight, Lock, Building2, ChevronLeft, Sun, Moon, Heart, Mail, MapPin
@@ -215,121 +215,152 @@ export default function Home() {
     }
   };
 
+  const scrollToFeatures = () => {
+    const section = document.getElementById('features');
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Handle hash scrolling from URL
+  const location = useLocation();
+  useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.replace('#', '');
+      const element = document.getElementById(id === 'simulators' ? 'simulators-section' : id);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    }
+  }, [location]);
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-secondary/20">
 
-      {/* Navbar Unificada */}
-      <nav className="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
+      {/* Hero - Modern/Tech Style */}
+      <main className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-[90vh] flex items-center">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-secondary/30 rounded-full blur-[100px] animate-pulse"></div>
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[150px]"></div>
 
-            {/* Logo */}
-            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-              <img src={logo} alt="Salário do Servidor" className="w-16 h-16 object-contain" />
-              <span className="text-xl font-extrabold tracking-tight text-slate-800 dark:text-white">
-                Salário do <span className="gradient-text">Servidor</span>
-              </span>
-            </div>
+          {/* Grid Pattern */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:60px_60px]"></div>
 
-            {/* Menu Desktop */}
-            <div className="hidden md:flex items-center gap-10">
-              <button onClick={() => navigate('/')} className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-secondary transition-colors">Início</button>
-              <button onClick={scrollToSimulators} className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-secondary transition-colors">Simuladores</button>
-              <Link to="/apoiar" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-secondary transition-colors">Apoiar</Link>
-            </div>
-
-            {/* Ações */}
-            <div className="hidden md:flex items-center gap-4">
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              </button>
-              <Link to="/apoiar" className="btn btn-sm bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-bold hover:shadow-lg hover:shadow-rose-500/30 transition-all">
-                <Heart className="w-4 h-4" />
-                Apoiar
-              </Link>
-            </div>
-
-            {/* Mobile Toggle */}
-            <div className="md:hidden">
-              <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-slate-600 dark:text-slate-300">
-                {isMobileMenuOpen ? <X /> : <Menu />}
-              </button>
-            </div>
-          </div>
+          {/* Floating Geometric Shapes */}
+          <div className="absolute top-32 right-[20%] w-4 h-4 bg-secondary/60 rotate-45 animate-bounce" style={{ animationDuration: '3s' }}></div>
+          <div className="absolute top-[40%] left-[15%] w-3 h-3 bg-emerald-400/60 rounded-full animate-bounce" style={{ animationDuration: '4s', animationDelay: '0.5s' }}></div>
+          <div className="absolute bottom-[30%] right-[25%] w-2 h-2 bg-purple-400/60 rotate-45 animate-bounce" style={{ animationDuration: '3.5s', animationDelay: '1s' }}></div>
+          <div className="absolute top-[25%] left-[40%] w-6 h-6 border border-secondary/30 rotate-12 animate-spin" style={{ animationDuration: '20s' }}></div>
         </div>
 
-        {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 p-4 space-y-4 shadow-xl absolute w-full">
-            <button onClick={() => { navigate('/'); setIsMobileMenuOpen(false); }} className="block w-full text-left font-medium text-slate-600 dark:text-slate-300">Início</button>
-            <button onClick={() => { scrollToSimulators(); setIsMobileMenuOpen(false); }} className="block w-full text-left font-medium text-slate-600 dark:text-slate-300">Simuladores</button>
-            <hr className="border-slate-100 dark:border-slate-700" />
-            <Link to="/apoiar" onClick={() => setIsMobileMenuOpen(false)} className="block w-full bg-gradient-to-r from-rose-500 to-pink-500 text-white py-3 rounded-xl font-bold text-center">❤️ Apoiar o Projeto</Link>
-          </div>
-        )}
-      </nav>
-
-      {/* Hero */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-20 overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="text-left relative z-10">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold uppercase tracking-widest mb-8 border border-emerald-100">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Atualizado: Tabelas 2025/2026
-            </div>
-
-            <h1 className="text-5xl md:text-6xl font-black text-slate-900 tracking-tight mb-6 leading-[1.1]">
-              O valor real do seu <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-secondary to-blue-400">
-                futuro financeiro.
-              </span>
-            </h1>
-
-            <p className="text-lg text-slate-500 mb-10 leading-relaxed max-w-xl">
-              Pare de adivinhar. Simule seu salário líquido com precisão de centavos. Calculamos com base na legislação vigente, progressões, benefícios e simulações com Projetos de Lei.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button
-                onClick={scrollToSimulators}
-                className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all shadow-xl shadow-slate-900/20 flex items-center justify-center gap-3 hover:-translate-y-1"
-              >
-                Simular Agora <ArrowRight className="w-5 h-5" />
-              </button>
-              <div className="flex items-center gap-4 px-4 py-2">
-                <p className="text-xs font-medium text-slate-500">
-                  <strong className="text-slate-900">+2.000</strong> servidores usam
-                </p>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div className="text-left">
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 text-xs font-semibold uppercase tracking-widest mb-8 text-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                Atualizado: Tabelas 2025/2026
               </div>
-            </div>
-          </div>
 
-          <div className="relative hidden lg:block">
-            <div className="absolute -inset-4 bg-gradient-to-r from-secondary/20 to-purple-500/20 rounded-full blur-3xl opacity-50 animate-pulse"></div>
-            <div className="relative bg-white border border-slate-200 rounded-3xl shadow-2xl p-6 rotate-2 hover:rotate-0 transition-transform duration-500">
-              <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
-                <div className="flex gap-2">
-                  <div className="w-3 h-3 rounded-full bg-rose-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
+              <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight mb-6 leading-[1.05]">
+                Simule seu
+                <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-secondary via-blue-400 to-purple-400">
+                  salário real.
+                </span>
+              </h1>
+
+              <p className="text-lg md:text-xl text-slate-400 mb-10 leading-relaxed max-w-xl">
+                Cálculos precisos baseados na legislação vigente. Progressões, benefícios, descontos e projeções futuras em um só lugar.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={scrollToSimulators}
+                  className="group relative bg-gradient-to-r from-secondary to-blue-500 text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all shadow-2xl shadow-secondary/25 flex items-center justify-center gap-3 hover:shadow-secondary/40 hover:scale-[1.02]"
+                >
+                  <span className="relative z-10 flex items-center gap-3">
+                    Começar Simulação <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                </button>
+                <button
+                  onClick={scrollToFeatures}
+                  className="bg-white/5 backdrop-blur-sm border border-white/10 text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all hover:bg-white/10 flex items-center justify-center gap-3"
+                >
+                  Recursos Exclusivos
+                </button>
+              </div>
+
+              {/* Tech Stats */}
+              <div className="flex gap-8 mt-12 pt-8 border-t border-white/10">
+                <div>
+                  <div className="text-2xl font-black text-white">100%</div>
+                  <div className="text-xs text-slate-500 uppercase tracking-wider">Gratuito</div>
                 </div>
-                <div className="h-2 w-20 bg-slate-100 rounded-full"></div>
+                <div>
+                  <div className="text-2xl font-black text-white">2026</div>
+                  <div className="text-xs text-slate-500 uppercase tracking-wider">Tabelas Atualizadas</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-white">Real</div>
+                  <div className="text-xs text-slate-500 uppercase tracking-wider">Precisão</div>
+                </div>
               </div>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl">
-                  <div>
-                    <div className="h-2 w-24 bg-slate-200 rounded-full mb-2"></div>
-                    <div className="h-3 w-32 bg-slate-300 rounded-full"></div>
+            </div>
+
+            {/* Tech Card */}
+            <div className="relative hidden lg:block">
+              <div className="absolute -inset-4 bg-gradient-to-r from-secondary/40 to-purple-500/40 rounded-3xl blur-2xl opacity-40"></div>
+              <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+                {/* Card Header */}
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-secondary to-blue-500 flex items-center justify-center">
+                      <Calculator className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <div className="text-white font-bold">Simulação de Salário</div>
+                      <div className="text-xs text-slate-500">Janeiro/2026</div>
+                    </div>
                   </div>
-                  <div className="h-8 w-20 bg-emerald-100 rounded-lg"></div>
                 </div>
-                <div className="mt-6 pt-6 border-t border-slate-100">
-                  <div className="flex justify-between items-end">
-                    <span className="text-xs font-bold text-slate-400 uppercase">Líquido Estimado</span>
-                    <span className="text-2xl font-black text-secondary">R$ 15.450,32</span>
+
+                {/* Salary Breakdown */}
+                <div className="space-y-3 mb-6">
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-slate-400 text-sm">Vencimento Básico</span>
+                    <span className="text-white font-semibold">R$ 8.529,65</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-slate-400 text-sm">Gratificação (GAJ)</span>
+                    <span className="text-emerald-400 font-semibold">+ R$ 5.117,79</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-slate-400 text-sm">Adicional de Qualificação</span>
+                    <span className="text-emerald-400 font-semibold">+ R$ 1.364,74</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-t border-white/10 pt-4">
+                    <span className="text-slate-400 text-sm">PSS (Previdência)</span>
+                    <span className="text-rose-400 font-semibold">- R$ 1.650,44</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-slate-400 text-sm">Imposto de Renda</span>
+                    <span className="text-rose-400 font-semibold">- R$ 2.411,42</span>
+                  </div>
+                </div>
+
+                {/* Result Display */}
+                <div className="bg-gradient-to-r from-secondary/20 to-purple-500/20 rounded-2xl p-6 border border-secondary/30">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Líquido Estimado</span>
+                      <span className="text-sm text-slate-400">Valor a receber</span>
+                    </div>
+                    <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-secondary to-purple-400">R$ 10.950,32</span>
                   </div>
                 </div>
               </div>
@@ -434,90 +465,12 @@ export default function Home() {
               <div className="w-14 h-14 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500 mb-6">
                 <FileText className="w-7 h-7" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">Exportação PDF</h3>
-              <p className="text-slate-500 leading-relaxed text-sm">Gere holerites simulados profissionais.</p>
+              <h3 className="text-xl font-bold text-slate-900 mb-3">Exportação PDF e Excel</h3>
+              <p className="text-slate-500 leading-relaxed text-sm">Gere holerites simulados em formatos profissionais.</p>
             </div>
           </div>
         </div>
       </section>
-
-      {/* Footer Unificado */}
-      <footer className="bg-navy-dark text-slate-400 pt-20 pb-10 transition-colors duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-            <div className="space-y-6">
-              <div className="flex items-center gap-3">
-                <img src={logo} alt="Salário do Servidor" className="w-16 h-16 object-contain" />
-                <span className="text-xl font-bold tracking-tight text-white">
-                  Salário do <span className="gradient-text">Servidor</span>
-                </span>
-              </div>
-              <p className="text-sm leading-relaxed max-w-xs">
-                A ferramenta mais completa e precisa para simulação de remunerações no serviço público brasileiro. Transparência para quem serve à nação.
-              </p>
-              <div className="flex gap-4">
-                <a className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-secondary hover:text-white transition-all" href="#">
-                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"></path></svg>
-                </a>
-                <a className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-secondary hover:text-white transition-all" href="#">
-                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.84 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"></path></svg>
-                </a>
-                <a className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-secondary hover:text-white transition-all" href="#">
-                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.266.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069z"></path></svg>
-                </a>
-              </div>
-            </div>
-            <div>
-              <h4 className="text-white font-bold mb-6 text-lg">Sobre o Site</h4>
-              <ul className="space-y-4 text-sm">
-                <li><a className="hover:text-primary transition-colors" href="#">Quem Somos</a></li>
-                <li><a className="hover:text-primary transition-colors" href="#">Nossa Metodologia</a></li>
-                <li><a className="hover:text-primary transition-colors" href="#">Privacidade e Termos</a></li>
-                <li><Link to="/apoiar" className="hover:text-primary transition-colors">Apoiar o Projeto</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-bold mb-6 text-lg">Links Úteis</h4>
-              <ul className="space-y-4 text-sm">
-                <li><a className="hover:text-primary transition-colors" href="#">Portal da Transparência</a></li>
-                <li><a className="hover:text-primary transition-colors" href="#">Receita Federal</a></li>
-                <li><a className="hover:text-primary transition-colors" href="#">Diário Oficial</a></li>
-                <li><a className="hover:text-primary transition-colors" href="#">Legislação Federal</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-bold mb-6 text-lg">Contato</h4>
-              <ul className="space-y-4 text-sm">
-                <li className="flex items-center gap-3">
-                  <Mail className="w-5 h-5 text-primary" />
-                  contato@salariodoservidor.com.br
-                </li>
-                <li className="flex items-center gap-3">
-                  <MapPin className="w-5 h-5 text-primary" />
-                  Brasília, DF
-                </li>
-                <li>
-                  <Link to="/apoiar" className="flex items-center gap-3 hover:text-primary transition-colors group">
-                    <Heart className="w-5 h-5 text-rose-400 group-hover:scale-110 transition-transform" />
-                    Apoie o Projeto
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div className="pt-10 border-t border-slate-800 text-center md:flex md:justify-between md:text-left items-center">
-            <p className="text-xs text-slate-500 mb-4 md:mb-0">
-              © 2024 Salário do Servidor. Todos os direitos reservados.
-              <span className="block md:inline mt-1 md:mt-0 md:ml-2 opacity-50">Dados meramente ilustrativos, sempre confira com seu órgão oficial.</span>
-            </p>
-            <div className="flex justify-center md:justify-end gap-6 text-xs font-semibold">
-              <a className="hover:text-white transition-colors" href="#">Termos</a>
-              <a className="hover:text-white transition-colors" href="#">Privacidade</a>
-              <a className="hover:text-white transition-colors" href="#">Cookies</a>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

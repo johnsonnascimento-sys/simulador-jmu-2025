@@ -9,6 +9,8 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import Donate from './pages/Donate';
+import About from './pages/About';
+import Privacy from './pages/Privacy';
 
 function App() {
   return (
@@ -18,8 +20,7 @@ function App() {
           {/* Coming Soon Page (Default Landing) */}
           <Route path="/" element={<ComingSoon />} />
 
-          {/* Secret Preview Access - Full Site */}
-          <Route path="/beta-access" element={<Home />} />
+          {/* Redirect /home to /beta-access */}
           <Route path="/home" element={<Navigate to="/beta-access" replace />} />
 
           {/* Rotas de Login/Admin */}
@@ -30,10 +31,13 @@ function App() {
             </ProtectedRoute>
           } />
 
-          {/* Rotas que USAM o MainLayout (Simulador e Apoiar) */}
+          {/* Rotas que USAM o MainLayout */}
           <Route element={<MainLayout />}>
+            <Route path="/beta-access" element={<Home />} />
             <Route path="/simulador/:slug" element={<Calculator />} />
             <Route path="/apoiar" element={<Donate />} />
+            <Route path="/quem-somos" element={<About />} />
+            <Route path="/privacidade" element={<Privacy />} />
           </Route>
 
           {/* Rota padrão para não encontrados */}

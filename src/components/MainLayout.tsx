@@ -24,7 +24,7 @@ const MainLayout: React.FC = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-20">
                         <div className="flex items-center gap-3">
-                            <Link to="/" className="flex items-center gap-3">
+                            <Link to="/beta-access" className="flex items-center gap-3">
                                 <img src={logo} alt="Salário do Servidor" className="w-16 h-16 object-contain" />
                                 <span className="text-xl font-extrabold tracking-tight text-slate-800 dark:text-white">
                                     Salário do <span className="gradient-text">Servidor</span>
@@ -33,9 +33,9 @@ const MainLayout: React.FC = () => {
                         </div>
 
                         <nav className="hidden md:flex items-center gap-10">
-                            <Link to="/" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-secondary dark:hover:text-primary transition-colors">Início</Link>
-                            <Link to="/" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-secondary dark:hover:text-primary transition-colors">Simuladores</Link>
-                            <Link to="/apoiar" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-secondary dark:hover:text-primary transition-colors">Apoiar</Link>
+                            <Link to="/beta-access" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-secondary dark:hover:text-primary transition-colors">Início</Link>
+                            <Link to="/beta-access#simulators" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-secondary dark:hover:text-primary transition-colors">Simuladores</Link>
+                            <Link to="/quem-somos" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-secondary dark:hover:text-primary transition-colors">Quem Somos</Link>
                         </nav>
 
                         <div className="flex items-center gap-4">
@@ -71,7 +71,7 @@ const MainLayout: React.FC = () => {
                                 </span>
                             </div>
                             <p className="text-sm leading-relaxed max-w-xs">
-                                A ferramenta mais completa e precisa para simulação de remunerações no serviço público brasileiro. Transparência para quem serve à nação.
+                                A ferramenta mais completa e precisa para simulação de remunerações no serviço público brasileiro.
                             </p>
                             <div className="flex gap-4">
                                 <a className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-secondary hover:text-white transition-all" href="#">
@@ -88,19 +88,18 @@ const MainLayout: React.FC = () => {
                         <div>
                             <h4 className="text-white font-bold mb-6 text-lg">Sobre o Site</h4>
                             <ul className="space-y-4 text-sm">
-                                <li><a className="hover:text-primary transition-colors" href="#">Quem Somos</a></li>
-                                <li><a className="hover:text-primary transition-colors" href="#">Nossa Metodologia</a></li>
-                                <li><a className="hover:text-primary transition-colors" href="#">Privacidade e Termos</a></li>
+                                <li><Link to="/quem-somos" className="hover:text-primary transition-colors">Quem Somos</Link></li>
+                                <li><Link to="/privacidade" className="hover:text-primary transition-colors">Privacidade e Termos</Link></li>
                                 <li><Link to="/apoiar" className="hover:text-primary transition-colors">Apoiar o Projeto</Link></li>
                             </ul>
                         </div>
                         <div>
                             <h4 className="text-white font-bold mb-6 text-lg">Links Úteis</h4>
                             <ul className="space-y-4 text-sm">
-                                <li><a className="hover:text-primary transition-colors" href="#">Portal da Transparência</a></li>
-                                <li><a className="hover:text-primary transition-colors" href="#">Receita Federal</a></li>
-                                <li><a className="hover:text-primary transition-colors" href="#">Diário Oficial</a></li>
-                                <li><a className="hover:text-primary transition-colors" href="#">Legislação Federal</a></li>
+                                <li><a className="hover:text-primary transition-colors" href="https://portaldatransparencia.gov.br" target="_blank" rel="noopener noreferrer">Portal da Transparência</a></li>
+                                <li><a className="hover:text-primary transition-colors" href="https://www.gov.br/receitafederal" target="_blank" rel="noopener noreferrer">Receita Federal</a></li>
+                                <li><a className="hover:text-primary transition-colors" href="https://www.in.gov.br" target="_blank" rel="noopener noreferrer">Diário Oficial</a></li>
+                                <li><a className="hover:text-primary transition-colors" href="https://www.planalto.gov.br/legislacao" target="_blank" rel="noopener noreferrer">Legislação Federal</a></li>
                             </ul>
                         </div>
                         <div>
@@ -112,7 +111,7 @@ const MainLayout: React.FC = () => {
                                 </li>
                                 <li className="flex items-center gap-3">
                                     <MapPin className="w-5 h-5 text-primary" />
-                                    Brasília, DF
+                                    São Paulo, SP
                                 </li>
                                 <li>
                                     <Link to="/apoiar" className="flex items-center gap-3 hover:text-primary transition-colors group">
@@ -125,13 +124,11 @@ const MainLayout: React.FC = () => {
                     </div>
                     <div className="pt-10 border-t border-slate-800 text-center md:flex md:justify-between md:text-left items-center">
                         <p className="text-xs text-slate-500 mb-4 md:mb-0">
-                            © 2024 Salário do Servidor. Todos os direitos reservados.
+                            © 2026 Salário do Servidor. Todos os direitos reservados.
                             <span className="block md:inline mt-1 md:mt-0 md:ml-2 opacity-50">Dados meramente ilustrativos, sempre confira com seu órgão oficial.</span>
                         </p>
                         <div className="flex justify-center md:justify-end gap-6 text-xs font-semibold">
-                            <a className="hover:text-white transition-colors" href="#">Termos</a>
-                            <a className="hover:text-white transition-colors" href="#">Privacidade</a>
-                            <a className="hover:text-white transition-colors" href="#">Cookies</a>
+                            <Link to="/privacidade" className="hover:text-white transition-colors">Privacidade e Termos</Link>
                         </div>
                     </div>
                 </div>
