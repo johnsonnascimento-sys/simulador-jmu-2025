@@ -44,7 +44,7 @@ const SIMULATOR_DATA: SimulatorNode[] = [
                 id: 'stm',
                 name: 'STM e Auditorias (JMU)',
                 type: 'simulator',
-                slug: 'stm',
+                slug: 'jmu',
                 description: 'Simulador completo para servidores da JMU (Lei 13.317/16 + Lei 15.292/26)'
               }
             ]
