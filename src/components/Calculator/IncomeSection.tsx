@@ -32,7 +32,7 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({ state, update, cou
                             <div>
                                 <label className={styles.label}>Cargo</label>
                                 <select className={styles.input} value={state.cargo} onChange={e => update('cargo', e.target.value)}>
-                                    <option value="tec">Técnico</option>
+                                    <option value="tecnico">Técnico</option>
                                     <option value="analista">Analista</option>
                                 </select>
                             </div>
