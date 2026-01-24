@@ -23,17 +23,17 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({ state, onExportPDF, 
                     <div className="flex items-center gap-2 mr-4">
                         <button
                             onClick={onExportPDF}
-                            className="bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-600 p-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 font-bold text-xs uppercase tracking-wide"
+                            className="bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-600 p-3 rounded-xl transition-all duration-200 flex items-center gap-2 font-bold text-xs uppercase tracking-wide min-w-[44px] min-h-[44px]"
                             title="Exportar PDF/Holerite"
                         >
-                            <FileText size={18} /> <span className="hidden sm:inline">PDF</span>
+                            <FileText size={20} /> <span className="hidden sm:inline">PDF</span>
                         </button>
                         <button
                             onClick={onExportExcel}
-                            className="bg-emerald-500/10 hover:bg-emerald-500 hover:text-white text-emerald-600 p-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 font-bold text-xs uppercase tracking-wide"
+                            className="bg-emerald-500/10 hover:bg-emerald-500 hover:text-white text-emerald-600 p-3 rounded-xl transition-all duration-200 flex items-center gap-2 font-bold text-xs uppercase tracking-wide min-w-[44px] min-h-[44px]"
                             title="Exportar Excel"
                         >
-                            <TableIcon size={18} /> <span className="hidden sm:inline">Excel</span>
+                            <TableIcon size={20} /> <span className="hidden sm:inline">Excel</span>
                         </button>
                     </div>
 
