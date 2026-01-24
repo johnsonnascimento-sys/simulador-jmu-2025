@@ -16,6 +16,8 @@ import { ResultsSidebar } from '../components/Calculator/ResultsSidebar';
 import DonationModal from '../components/DonationModal';
 import { SeasonalIncomeSection } from '../components/Calculator/SeasonalIncomeSection';
 import { IndemnitySection } from '../components/Calculator/IndemnitySection';
+import { Accordion } from '../components/ui/Accordion';
+
 
 export default function Calculator() {
     const {
@@ -82,17 +84,32 @@ export default function Calculator() {
                         styles={styles}
                         isNovoAQ={isNovoAQ}
                     />
-                    <VariableIncomeSection
-                        state={state}
-                        update={update}
-                        updateSubstDays={updateSubstDays}
-                        styles={styles}
-                    />
-                    <SeasonalIncomeSection
-                        state={state}
-                        update={update}
-                        styles={styles}
-                    />
+
+                    <Accordion title="Rendimentos Variáveis" defaultOpen={false}>
+                        <VariableIncomeSection
+                            state={state}
+                            update={update}
+                            updateSubstDays={updateSubstDays}
+                            styles={styles}
+                        />
+                    </Accordion>
+
+                    <Accordion title="Rendimentos Sazonais (Férias/13º)" defaultOpen={false}>
+                        <SeasonalIncomeSection
+                            state={state}
+                            update={update}
+                            styles={styles}
+                        />
+                    </Accordion>
+
+                    <Accordion title="Indenizações" defaultOpen={false}>
+                        <IndemnitySection
+                            state={state}
+                            update={update}
+                            styles={styles}
+                        />
+                    </Accordion>
+
                     <DeductionsSection
                         state={state}
                         update={update}
