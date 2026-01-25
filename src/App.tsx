@@ -7,6 +7,9 @@ import Home from './pages/Home';
 import Calculator from './pages/Calculator';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminGlobal from './pages/AdminGlobal';
+import AdminPower from './pages/AdminPower';
+import AdminOrg from './pages/AdminOrg';
 import ProtectedRoute from './components/ProtectedRoute';
 import Donate from './pages/Donate';
 import About from './pages/About';
@@ -28,6 +31,21 @@ function App() {
           <Route path="/admin" element={
             <ProtectedRoute>
               <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/global" element={
+            <ProtectedRoute>
+              <AdminGlobal />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/power" element={
+            <ProtectedRoute>
+              <AdminPower />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/org" element={
+            <ProtectedRoute>
+              <AdminOrg />
             </ProtectedRoute>
           } />
 
