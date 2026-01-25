@@ -1,17 +1,17 @@
 # Status do Projeto - Salário do Servidor
 
-**Última Atualização:** 25/01/2026 00:45
+**Última Atualização:** 25/01/2026 13:30
 **Versão:** 1.1.0
-**Último Commit:** ed519c2
-**Scripts:** ⭐ audit-project.cjs, generate-version.js, verify-migration.js
+**Último Commit:** 7b07b90
+**Scripts:** ⭐ audit-project.cjs, audit-design-system.cjs, generate-version.js, verify-migration.js
 
 ---
 
 ## 🎯 RESUMO EXECUTIVO
 
 **Projeto em produção:** https://salariodoservidor.com.br/simulador/jmu
-**Status geral:** ✅ Sistema 100% Data-Driven - Zero código para novos órgãos!
-**Próxima prioridade:** Design System completo
+**Status geral:** ✅ Sistema 100% Data-Driven + Design System Completo!
+**Próxima prioridade:** Refatoração para usar tokens do Design System
 
 ---
 
@@ -53,39 +53,62 @@
 ### Fase 4: UX/UI (100%)
 - ✅ **Hybrid Dashboard:**
   - ResultsSidebar.tsx (desktop sticky)
-  - MobileResultsBar.tsx (mobile top bar)
+  - MobileResultsBar.tsx (mobile bottom bar - movida de top para bottom)
   - Accordion.tsx (seções colapsáveis)
   - Layout 2 colunas responsivo
 - ✅ **Sistema de Versionamento:**
   - Script: `scripts/generate-version.js`
   - Componente: `src/components/ui/VersionBadge.tsx`
-  - Badge discreto no ActionFooter
+  - Badge discreto no ActionFooter e MobileResultsBar
   - Auto-geração no build (prebuild hook)
+- ✅ **Design System Completo:**
+  - tailwind.config.js: 58 → 373 linhas com tokens completos
+  - 7 famílias de cores × 11 tonalidades (primary, secondary, neutral, success, warning, error, info)
+  - Sistema tipográfico semântico (display, headings, body, labels)
+  - Z-index organizado, animações, transições
+  - DESIGN_SYSTEM.md: Documentação completa (800+ linhas)
+  - Script: `scripts/audit-design-system.cjs`
+  - Health Score inicial: 60.5/100 (679 violações em 29 arquivos)
 
 ---
 
 ## ⏳ PRÓXIMAS PRIORIDADES
 
-### 1. Design System Completo (RECOMENDADO - 2-3 dias)
-**Objetivo:** Brand consistente e visual profissional
+### 1. Migração slate → neutral (URGENTE - Health Score Impact)
+**Objetivo:** Substituir cores deprecated por tokens do Design System
+
+**Impacto:** 223 violações (maior categoria)
 
 **Tarefas:**
-1. Design tokens no tailwind.config.js
-2. Padronizar cores, fontes, espaçamentos
-3. Auditoria de consistência com script
-4. Documentar padrões visuais
+1. Buscar e substituir `slate-` por `neutral-` em todos os componentes
+2. Validar visualmente em ambos os modos (light/dark)
+3. Re-executar audit:design para verificar melhoria
 
-**Benefício:** Interface polida e identidade visual forte
+**Benefício:** +15-20 pontos no Health Score
 
-### 2. Componentes UI Reutilizáveis (1-2 dias)
-- Criar Button, Input, Select, Card em `src/components/ui/`
-- Refatorar componentes Calculator para usar
-- Documentar uso
+### 2. Tokens Semânticos de Tipografia (RECOMENDADO)
+**Objetivo:** Substituir classes genéricas por tokens semânticos
 
-### 3. Design System Completo (2-3 dias)
-- Design tokens no tailwind.config.js
-- Padronizar cores, fontes, espaçamentos
-- Auditoria de consistência
+**Impacto:** 206 violações
+
+**Tarefas:**
+1. Substituir `text-xs`, `text-sm`, `text-lg` por `text-body`, `text-label`, `text-h*`
+2. Garantir consistência de line-height (já incluído nos tokens)
+3. Documentar padrões de uso por contexto
+
+**Benefício:** +10-15 pontos no Health Score, melhor manutenibilidade
+
+### 3. Migração de Cores Hardcoded (IMPORTANTE)
+**Objetivo:** Usar design tokens em vez de cores diretas
+
+**Impacto:** 250 violações
+
+**Tarefas:**
+1. Substituir `blue-600`, `indigo-500`, etc. por `secondary`, `primary`
+2. Usar cores semânticas (`success`, `error`, `warning`) onde apropriado
+3. Validar contraste e acessibilidade
+
+**Benefício:** +20-25 pontos no Health Score, consistência visual
 
 ---
 
@@ -121,14 +144,17 @@ src/
 
 scripts/
 ├── generate-version.js      # Geração automática de versão
-└── audit-project.cjs        # Auditoria automática do projeto (novo)
+├── audit-project.cjs        # Auditoria automática do projeto
+└── audit-design-system.cjs  # ⭐ Auditoria de Design System (NOVO)
 
 public/
 └── version.json             # Gerado no build (ignorado no git)
 
 reports/                     # Relatórios de auditoria (ignorado no git)
-├── audit-report.json        # Dados estruturados
-└── audit-report.md          # Relatório legível
+├── audit-report.json        # Dados estruturados (projeto)
+├── audit-report.md          # Relatório legível (projeto)
+├── design-audit-report.json # ⭐ Dados estruturados (design) (NOVO)
+└── design-audit-report.md   # ⭐ Relatório legível (design) (NOVO)
 ```
 
 ### Arquivos de Documentação
@@ -162,14 +188,22 @@ git commit -m "msg"      # Commit
 git push origin main     # Deploy automático
 ```
 
-### Script de Auditoria Automática ⭐ **NOVO**
+### Scripts de Auditoria ⭐
 ```bash
-# Executar auditoria completa do projeto
+# Auditoria completa do projeto (estrutura, módulos, métricas)
 npm run audit
 
-# Gera 2 relatórios em reports/:
+# Gera em reports/:
 # - audit-report.json (dados estruturados)
 # - audit-report.md (relatório legível)
+
+# Auditoria de Design System (violações visuais) ⭐ **NOVO**
+npm run audit:design
+
+# Gera em reports/:
+# - design-audit-report.json (violações por tipo)
+# - design-audit-report.md (relatório com sugestões)
+# Health Score: 60.5/100 (baseline atual)
 ```
 
 **O que o script faz:**
@@ -215,16 +249,16 @@ cat package.json | grep version
 ## 🚀 DEPLOY
 
 ### Status Atual
-- **Último deploy:** 018a9a4
+- **Último deploy:** 7b07b90
 - **URL Produção:** https://salariodoservidor.com.br/simulador/jmu
 - **URL Legado:** https://legado.salariodoservidor.com.br/simulador/jmu
 - **Vercel:** Deploy automático no push para main
 
 ### Validar Deploy
 1. Abrir URL de produção
-2. Ver badge de versão (canto inferior esquerdo)
+2. Ver badge de versão (canto inferior direito desktop / expandido mobile)
 3. Hover para ver commit hash
-4. Comparar com `git log --oneline -1`
+4. Comparar com `git log --online -1`
 
 ---
 
@@ -233,10 +267,24 @@ cat package.json | grep version
 ### Código
 - **JmuService.ts:** 801 → 141 linhas (-82.4% / -660 linhas)
 - **useCalculator.ts:** 398 → 100 linhas (-74.9% / -298 linhas)
+- **tailwind.config.js:** 58 → 373 linhas (+543% - Design System completo)
+- **DESIGN_SYSTEM.md:** 316 → 800+ linhas (documentação completa)
 - **Módulos criados:** 13 (9 JMU + 4 hooks)
 - **Componentes UI:** 7 (Button, Input, Select, Card, Accordion, VersionBadge, index.ts)
 - **Componentes Calculator:** 15 componentes especializados
 - **ConfigService:** 190 linhas (sistema hierárquico completo)
+
+### Design System
+- **Famílias de cores:** 7 (primary, secondary, neutral, success, warning, error, info)
+- **Tonalidades por família:** 11 (50-950)
+- **Tokens tipográficos:** 23 (display, headings, body, labels)
+- **Z-index semânticos:** 8 camadas organizadas
+- **Animações:** 3 (fade-in, slide-up, slide-down)
+- **Health Score atual:** 60.5/100 (baseline)
+- **Violações detectadas:** 679 em 29 arquivos
+  - Cores hardcoded: 250
+  - Deprecated slate: 223
+  - Tipografia não-semântica: 206
 
 ### UX
 - **Redução de scroll:** 60%
@@ -279,20 +327,20 @@ ls dist/version.json
 
 ### Como Retomar
 
-1. **Executar auditoria automática** ⭐ **RECOMENDADO**
+1. **Executar auditorias** ⭐ **RECOMENDADO**
    ```bash
-   npm run audit
+   npm run audit          # Estrutura e métricas
+   npm run audit:design   # Violações de Design System
    ```
-   Gera snapshot completo do projeto (economia de ~20k tokens)
+   Gera snapshots completos (economia de ~20k tokens)
 
-2. **Ler relatório gerado** (reports/audit-report.md)
-   - Status de todas as fases
-   - Métricas de código
-   - Validações automáticas
+2. **Ler relatórios gerados**
+   - `reports/audit-report.md` - Status de fases e métricas
+   - `reports/design-audit-report.md` - Violações e sugestões (Health Score: 60.5/100)
 
-3. **Verificar TASK.md** (se necessário detalhes adicionais)
+3. **Verificar PROJECT_STATUS.md** para contexto completo
 
-4. **Ver último commit:**
+4. **Ver últimos commits:**
    ```bash
    git log --oneline -5
    ```
@@ -305,16 +353,19 @@ ls dist/version.json
 Olá! Continuando projeto Salário do Servidor.
 
 IMPORTANTE: Execute primeiro para economizar tokens:
-npm run audit
+npm run audit && npm run audit:design
 
-Isso gera relatório completo em reports/audit-report.md com:
-- Status de todas as fases (4/5 completas)
-- Métricas de redução de código (82.4% JMU, 74.9% useCalculator)
-- Validação de módulos (9 JMU, 4 hooks, 7 UI components)
+Relatórios gerados:
+- reports/audit-report.md: Fases 1-4 completas (100%)
+- reports/design-audit-report.md: Health Score 60.5/100
 
-Após ler o relatório, ver: PROJECT_STATUS.md para contexto completo
+Estado atual:
+- ✅ Sistema Data-Driven 100%
+- ✅ Design System completo (tokens, documentação, auditoria)
+- ⏳ Health Score 60.5/100 (679 violações)
 
-Próximo: Migrar data.ts → banco (Data-Driven 100%)
+Próximo: Migração slate→neutral (223 violações, +15-20 pontos no score)
+Ver: PROJECT_STATUS.md seção "Próximas Prioridades"
 ```
 
 ---
@@ -322,26 +373,31 @@ Próximo: Migrar data.ts → banco (Data-Driven 100%)
 ## 📝 NOTAS IMPORTANTES
 
 ### O que NÃO fazer
-- ❌ Não modularizar JmuService/useCalculator (já feito)
-- ❌ Não criar Hybrid Dashboard (já feito)
-- ❌ Não implementar ConfigService (já feito)
-- ❌ Não adicionar sistema de versionamento (já feito)
+- ❌ Não modularizar JmuService/useCalculator (já feito - Fase 1)
+- ❌ Não criar Hybrid Dashboard (já feito - Fase 4)
+- ❌ Não implementar ConfigService (já feito - Fase 3)
+- ❌ Não adicionar sistema de versionamento (já feito - Fase 4)
+- ❌ Não criar design tokens/documentação (já feito - Fase 4)
 
 ### O que FAZER
-- ✅ Migrar dados hardcoded de data.ts → banco
-- ✅ Criar componentes UI reutilizáveis
-- ✅ Padronizar design system
+- 🎯 **Migrar slate → neutral** (223 violações, maior impacto)
+- 🎯 **Tokens semânticos de tipografia** (206 violações)
+- 🎯 **Substituir cores hardcoded** (250 violações)
+- ✅ Migrar dados hardcoded de data.ts → banco (quando necessário)
 - ✅ Adicionar testes (backlog)
 
 ### Arquivos Críticos
-- `src/data.ts` - Contém dados hardcoded (a migrar)
+- `tailwind.config.js` - 373 linhas de design tokens
+- `DESIGN_SYSTEM.md` - 800+ linhas de documentação
+- `src/data.ts` - Contém dados hardcoded (a migrar eventualmente)
 - `src/services/config/ConfigService.ts` - Sistema de config
 - `src/services/agency/implementations/JmuService.ts` - Orquestrador JMU
 - `src/hooks/useCalculator.ts` - Orquestrador hooks
-- `package.json` - Versão 1.0.0
+- `scripts/audit-design-system.cjs` - Auditoria de consistência visual
 
 ---
 
-**Última verificação:** 24/01/2026 23:45
-**Tokens disponíveis:** ~115k (58% restante)
-**Próximo marco:** Data-Driven 100% (v1.1.0)
+**Última verificação:** 25/01/2026 13:30
+**Versão:** 1.1.0
+**Health Score:** 60.5/100 (baseline - melhorar para 90+)
+**Próximo marco:** Refatoração para tokens do Design System
