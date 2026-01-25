@@ -103,3 +103,7 @@ R: É automático.
 R: No site do Supabase. Você tem dois projetos lá:
 - Projeto sem sufixo: É o oficial.
 - Projeto com final `-DEV`: É o de teste. Use este para ver os usuários que você cria no `localhost`.
+
+---
+
+**Última atualização:** 25/01/2026
