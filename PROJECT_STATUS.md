@@ -1,8 +1,8 @@
 # Status do Projeto - Salario do Servidor
 
-**Ultima Atualizacao:** 25/01/2026 15:32
-**Versao:** 1.0.0
-**Ultimo Commit:** 4b429d1
+**Ultima Atualizacao:** 25/01/2026 15:45
+**Versao:** 2.0.0
+**Ultimo Commit:** release v2.0.0
 **Scripts:** audit-project.cjs, audit-design-system.cjs, generate-version.js, verify-migration.js
 
 ---
@@ -39,6 +39,14 @@
 - Tokens completos no Tailwind
 - DESIGN_SYSTEM.md completo
 - audit:design com Health Score 100/100
+
+---
+
+## Fases em Progresso
+
+### Fase 5: Qualidade e testes
+- Typecheck aprovado (npx tsc --noEmit)
+- Scripts isolados do build (tsconfig include/exclude)
 
 ---
 
