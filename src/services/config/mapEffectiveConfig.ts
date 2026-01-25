@@ -35,6 +35,13 @@ const toMenuOptions = (values?: Record<string, number>) => {
         .map(([label, value]) => ({ label, value }));
 };
 
+const pickCaseInsensitive = (obj: Record<string, any> | undefined, key: string) => {
+    if (!obj) return undefined;
+    if (key in obj) return obj[key];
+    const found = Object.keys(obj).find((candidate) => candidate.toLowerCase() === key.toLowerCase());
+    return found ? obj[found] : undefined;
+};
+
 const toAdjustmentSchedule = (schedule?: AdjustmentScheduleConfig) => {
     if (!schedule) return undefined;
     return Object.entries(schedule)
@@ -49,6 +56,7 @@ const toAdjustmentSchedule = (schedule?: AdjustmentScheduleConfig) => {
 
 export const mapEffectiveConfigToCourtConfig = (effective: EffectiveConfig): CourtConfig => {
     const salaryBases = effective.salary_bases;
+    const salarySource = (salaryBases as any)?.salario ?? salaryBases ?? {};
 
     const historico_pss: Record<string, TaxTable> = {};
     if (effective.pss_tables) {
@@ -71,16 +79,24 @@ export const mapEffectiveConfigToCourtConfig = (effective: EffectiveConfig): Cou
         });
     }
 
-    const tecnicoBases = salaryBases?.tecnico ?? (salaryBases as any)?.tec ?? {};
+    const tecnicoBases =
+        pickCaseInsensitive(salarySource, 'tecnico') ??
+        pickCaseInsensitive(salarySource, 'tec') ??
+        {};
+    const analistaBases = pickCaseInsensitive(salarySource, 'analista') ?? {};
+    const funcoesBases =
+        pickCaseInsensitive(salaryBases as any, 'funcoes') ??
+        pickCaseInsensitive(salarySource, 'funcoes') ??
+        {};
 
     return {
         adjustment_schedule: toAdjustmentSchedule(effective.adjustment_schedule),
         bases: {
             salario: {
-                analista: salaryBases?.analista ?? {},
+                analista: analistaBases,
                 tec: tecnicoBases,
             },
-            funcoes: salaryBases?.funcoes ?? {},
+            funcoes: funcoesBases,
         },
         historico_pss,
         historico_ir,
