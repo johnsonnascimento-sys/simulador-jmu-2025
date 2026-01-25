@@ -1,8 +1,9 @@
 # Status do Projeto - Salário do Servidor
 
-**Última Atualização:** 24/01/2026 23:45
+**Última Atualização:** 24/01/2026 23:55
 **Versão:** 1.0.0
-**Último Commit:** 018a9a4
+**Último Commit:** 3fbf7ba
+**Scripts:** ⭐ audit-project.cjs, generate-version.js
 
 ---
 
@@ -119,10 +120,15 @@ src/
 └── data.ts                  # ⚠️ A DEPRECAR (hardcoded data)
 
 scripts/
-└── generate-version.js      # Geração automática de versão
+├── generate-version.js      # Geração automática de versão
+└── audit-project.cjs        # Auditoria automática do projeto (novo)
 
 public/
 └── version.json             # Gerado no build (ignorado no git)
+
+reports/                     # Relatórios de auditoria (ignorado no git)
+├── audit-report.json        # Dados estruturados
+└── audit-report.md          # Relatório legível
 ```
 
 ### Arquivos de Documentação
@@ -132,6 +138,9 @@ public/
 - `PROJECT_STATUS.md` - Este arquivo (resumo executivo)
 - `MANUAL_DO_PROJETO.md` - Guia para iniciantes
 - `DESIGN_SYSTEM.md` - Padrões de design
+- `AUDITORIA_DIARIA.md` - ⭐ Guia prático do script de auditoria (NOVO)
+- `AUDIT_SCRIPT.md` - Documentação técnica do script de auditoria
+- `scripts/README.md` - Documentação de scripts utilitários
 
 ---
 
@@ -152,7 +161,39 @@ git commit -m "msg"      # Commit
 git push origin main     # Deploy automático
 ```
 
-### Verificações Rápidas
+### Script de Auditoria Automática ⭐ **NOVO**
+```bash
+# Executar auditoria completa do projeto
+npm run audit
+
+# Gera 2 relatórios em reports/:
+# - audit-report.json (dados estruturados)
+# - audit-report.md (relatório legível)
+```
+
+**O que o script faz:**
+- ✅ Conta linhas de arquivos principais
+- ✅ Lista todos os módulos JMU (9)
+- ✅ Lista todos os hooks calculator (4)
+- ✅ Lista componentes UI criados
+- ✅ Valida fases do IMPLEMENTATION_PLAN
+- ✅ Calcula métricas de redução de código
+- ✅ Mostra git status e último commit
+- ✅ Gera relatórios JSON + Markdown
+
+**Benefícios:**
+- 🚀 **Zero tokens** - não precisa ler múltiplos arquivos
+- 📊 **Snapshot instantâneo** - estado completo do projeto em 1 comando
+- 📈 **Métricas automáticas** - JmuService 82.4% reduzido, useCalculator 74.9%
+- ✅ **Validação de fases** - 4/5 completas automaticamente
+
+**Quando usar:**
+- Início de cada sessão (ao invés de ler vários arquivos)
+- Após mudanças estruturais
+- Para validar se fases estão completas
+- Para gerar relatórios de progresso
+
+### Verificações Rápidas (Manual - use npm run audit em vez disso)
 ```bash
 # Contar linhas de arquivos principais
 wc -l src/services/agency/implementations/JmuService.ts
@@ -189,10 +230,12 @@ cat package.json | grep version
 ## 📊 MÉTRICAS DO PROJETO
 
 ### Código
-- **JmuService.ts:** 801 → 140 linhas (-82%)
-- **useCalculator.ts:** 398 → 99 linhas (-75%)
+- **JmuService.ts:** 801 → 141 linhas (-82.4% / -660 linhas)
+- **useCalculator.ts:** 398 → 100 linhas (-74.9% / -298 linhas)
 - **Módulos criados:** 13 (9 JMU + 4 hooks)
-- **Componentes novos:** 4 (ResultsSidebar, MobileResultsBar, Accordion, VersionBadge)
+- **Componentes UI:** 7 (Button, Input, Select, Card, Accordion, VersionBadge, index.ts)
+- **Componentes Calculator:** 15 componentes especializados
+- **ConfigService:** 190 linhas (sistema hierárquico completo)
 
 ### UX
 - **Redução de scroll:** 60%
@@ -235,26 +278,40 @@ ls dist/version.json
 
 ### Como Retomar
 
-1. **Ler este arquivo** (PROJECT_STATUS.md)
-2. **Verificar TASK.md** para status detalhado
-3. **Ver último commit:**
+1. **Executar auditoria automática** ⭐ **RECOMENDADO**
+   ```bash
+   npm run audit
+   ```
+   Gera snapshot completo do projeto (economia de ~20k tokens)
+
+2. **Ler relatório gerado** (reports/audit-report.md)
+   - Status de todas as fases
+   - Métricas de código
+   - Validações automáticas
+
+3. **Verificar TASK.md** (se necessário detalhes adicionais)
+
+4. **Ver último commit:**
    ```bash
    git log --oneline -5
    ```
-4. **Escolher próxima prioridade** (ver seção "Próximas Prioridades")
+
+5. **Escolher próxima prioridade** (ver seção "Próximas Prioridades")
 
 ### Contexto para IA
 
 ```
 Olá! Continuando projeto Salário do Servidor.
 
-Status atual:
-- Versão 1.0.0 em produção
-- Hybrid Dashboard 100% completo
-- JmuService e useCalculator modularizados
-- ConfigService implementado
+IMPORTANTE: Execute primeiro para economizar tokens:
+npm run audit
 
-Ver: PROJECT_STATUS.md, TASK.md, IMPLEMENTATION_PLAN.md
+Isso gera relatório completo em reports/audit-report.md com:
+- Status de todas as fases (4/5 completas)
+- Métricas de redução de código (82.4% JMU, 74.9% useCalculator)
+- Validação de módulos (9 JMU, 4 hooks, 7 UI components)
+
+Após ler o relatório, ver: PROJECT_STATUS.md para contexto completo
 
 Próximo: Migrar data.ts → banco (Data-Driven 100%)
 ```

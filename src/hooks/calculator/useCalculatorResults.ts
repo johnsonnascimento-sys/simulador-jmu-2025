@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useMemo } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { CalculatorState, CourtConfig } from '../../types';
 import { JmuService } from '../../services/agency/implementations/JmuService';
 import { mapStateToJmuParams } from '../../services/agency/adapters/stateToParams';
@@ -15,7 +16,7 @@ import { getTablesForPeriod } from '../../utils/calculations';
 
 export const useCalculatorResults = (
     state: CalculatorState,
-    setState: React.Dispatch<React.SetStateAction<CalculatorState>>,
+    setState: Dispatch<SetStateAction<CalculatorState>>,
     agencyService: JmuService | null,
     courtConfig: CourtConfig | null,
     agency: { name: string; type: string; slug: string } | null

@@ -55,5 +55,5 @@ export function deepMerge<T extends Record<string, any>>(
 export function deepMergeMultiple<T extends Record<string, any>>(
     ...objects: Array<Partial<T>>
 ): T {
-    return objects.reduce((acc, obj) => deepMerge(acc as T, obj), {} as T);
+    return objects.reduce((acc, obj) => deepMerge(acc, obj) as T, {} as Partial<T>) as T;
 }

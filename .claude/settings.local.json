@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(if [ ! -d \"public\" ])",
+      "Bash(then mkdir public)",
+      "Bash(fi)",
+      "Bash(node scripts/generate-version.js:*)",
+      "Bash(npm run audit:*)"
+    ]
+  }
+}

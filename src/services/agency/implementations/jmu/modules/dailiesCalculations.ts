@@ -23,7 +23,7 @@ export interface DailiesResult {
 /**
  * Calcula Diárias de Viagem
  */
-export function calculateDailies(params: IJmuCalculationParams): DailiesResult {
+export async function calculateDailies(params: IJmuCalculationParams): Promise<DailiesResult> {
     // 1. Determinar valor da diária por cargo/função
     let valorDiaria = 0;
     if (params.funcao && params.funcao.toLowerCase().startsWith('cj')) {
@@ -60,7 +60,7 @@ export function calculateDailies(params: IJmuCalculationParams): DailiesResult {
     }
 
     // Aux Transporte (obter do cálculo de benefícios)
-    const benefits = calculateBenefits(params);
+    const benefits = await calculateBenefits(params);
     let deducaoTransporte = 0;
     if (params.diariasDescontarTransporte && totalDiasViagem > 0) {
         deducaoTransporte = (benefits.auxTransporte / 30) * totalDiasViagem;

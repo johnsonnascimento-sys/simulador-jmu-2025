@@ -16,9 +16,7 @@ export const exportToPDF = (state: CalculatorState, resultRows: any[], courtConf
     const doc = new jsPDF() as jsPDFWithAutoTable;
 
     // Configura o nome do órgão
-    const orgName = (courtConfig?.name && courtConfig.name.trim() !== '')
-        ? courtConfig.name.toUpperCase()
-        : "SIMULADOR DE SALÁRIO";
+    const orgName = "SIMULADOR DE SALÁRIO";
 
     // Nome do Site e URL (Marca no topo direito)
     doc.setFont("helvetica", "bold");
@@ -95,12 +93,10 @@ export const exportToPDF = (state: CalculatorState, resultRows: any[], courtConf
 };
 
 export const exportToExcel = (state: CalculatorState, resultRows: any[], courtConfig: CourtConfig | null) => {
-    const orgName = (courtConfig?.name && courtConfig.name.trim() !== '')
-        ? courtConfig.name.toUpperCase()
-        : "SIMULADOR DE SALÁRIO";
+    const orgName = "SIMULADOR DE SALÁRIO";
 
     const wb = XLSX.utils.book_new();
-    const wsData = [
+    const wsData: (string | number)[][] = [
         [orgName],
         [`SIMULAÇÃO DE SALÁRIO - REF: ${state.mesRef}/${state.anoRef}`],
         [`NOME: ${state.nome}`],

@@ -17,7 +17,7 @@
  * - modules/deductionsCalculations.ts - PSS, IRRF, Funpresp
  */
 
-import { IAgencyCalculator, ICalculationResult } from '../types';
+import { IAgencyCalculator, ICalculationResult, ICalculationParams } from '../types';
 import { IJmuCalculationParams } from './jmu/types';
 
 // Importar módulos de cálculo
@@ -33,10 +33,31 @@ import { calculateDeductions } from './jmu/modules/deductionsCalculations';
 
 /**
  * Service de Cálculo da JMU
- * 
+ *
  * Orquestra todos os cálculos delegando para módulos especializados.
  */
 export class JmuService implements IAgencyCalculator {
+
+    /**
+     * Calcula a base salarial (vencimento + GAJ + FC + AQ + gratificações)
+     */
+    async calculateBase(params: ICalculationParams): Promise<number> {
+        return await calculateBase(params as IJmuCalculationParams);
+    }
+
+    /**
+     * Calcula as deduções (PSS, IRRF, Funpresp)
+     */
+    async calculateDeductions(grossValue: number, params: ICalculationParams): Promise<any> {
+        return await calculateDeductions(grossValue, params as IJmuCalculationParams);
+    }
+
+    /**
+     * Calcula os benefícios (auxílios)
+     */
+    async calculateBenefits(params: ICalculationParams): Promise<any> {
+        return await calculateBenefits(params as IJmuCalculationParams);
+    }
 
     /**
      * Calcula o total da remuneração com todos os componentes
@@ -63,7 +84,7 @@ export class JmuService implements IAgencyCalculator {
         const thirteenth = await calculateThirteenth(params);
         const overtime = await calculateOvertime(params);
         const substitution = await calculateSubstitution(params);
-        const dailies = calculateDailies(params);
+        const dailies = await calculateDailies(params);
         const compensatoryLeave = await calculateCompensatoryLeave(params);
 
         // 4. Calcular Deduções (agora async)

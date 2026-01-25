@@ -1,0 +1,5 @@
+# Relatórios de auditoria gerados automaticamente
+# Não versionar - podem ser regenerados a qualquer momento com npm run audit
+
+*.json
+*.md

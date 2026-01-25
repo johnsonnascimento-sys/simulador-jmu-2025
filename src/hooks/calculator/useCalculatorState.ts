@@ -9,6 +9,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import type { ChangeEvent } from 'react';
 import { INITIAL_STATE, CalculatorState, Rubrica } from '../../types';
 
 export const useCalculatorState = () => {
@@ -52,7 +53,7 @@ export const useCalculatorState = () => {
         }));
     }, []);
 
-    const handleTipoCalculoChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const handleTipoCalculoChange = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
         const newTipo = e.target.value;
         let updates: Partial<CalculatorState> = { tipoCalculo: newTipo };
 
