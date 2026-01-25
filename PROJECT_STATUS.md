@@ -1,17 +1,17 @@
 # Status do Projeto - Salário do Servidor
 
-**Última Atualização:** 24/01/2026 23:55
-**Versão:** 1.0.0
-**Último Commit:** 3fbf7ba
-**Scripts:** ⭐ audit-project.cjs, generate-version.js
+**Última Atualização:** 25/01/2026 00:45
+**Versão:** 1.1.0
+**Último Commit:** ed519c2
+**Scripts:** ⭐ audit-project.cjs, generate-version.js, verify-migration.js
 
 ---
 
 ## 🎯 RESUMO EXECUTIVO
 
 **Projeto em produção:** https://salariodoservidor.com.br/simulador/jmu
-**Status geral:** ✅ Hybrid Dashboard 100% completo
-**Próxima prioridade:** Migração data.ts → banco (Data-Driven 100%)
+**Status geral:** ✅ Sistema 100% Data-Driven - Zero código para novos órgãos!
+**Próxima prioridade:** Design System completo
 
 ---
 
@@ -39,14 +39,16 @@
     - useCalculatorResults.ts
     - useCalculatorState.ts
 
-### Fase 3: Sistema Data-Driven (80%)
+### Fase 3: Sistema Data-Driven (100%) ✨
 - ✅ **ConfigService:** `src/services/config/ConfigService.ts`
   - Hierarquia: global_config → power_config → org_config
   - Deep merge implementado
   - Cache funcionando
 - ✅ **Migração PROD:** Sistema funcionando em produção
 - ✅ **STM validado:** Órgão criado apenas com config (sem código)
-- ⏳ **Pendente:** Migrar BASES_2025, HISTORICO_PSS/IR de data.ts → banco
+- ✅ **Migration SQL:** BASES_2025, HISTORICO_PSS/IR migrados para banco
+- ✅ **Módulos JMU:** Todos os 9 módulos usam ConfigService
+- ✅ **Data.ts:** Deprecated (mantido apenas como fallback)
 
 ### Fase 4: UX/UI (100%)
 - ✅ **Hybrid Dashboard:**
@@ -64,18 +66,16 @@
 
 ## ⏳ PRÓXIMAS PRIORIDADES
 
-### 1. Data-Driven 100% (RECOMENDADO - 2-3 dias)
-**Objetivo:** Zero código para novos órgãos
+### 1. Design System Completo (RECOMENDADO - 2-3 dias)
+**Objetivo:** Brand consistente e visual profissional
 
 **Tarefas:**
-1. Migrar `BASES_2025` de data.ts → power_config (PJU)
-2. Migrar `HISTORICO_PSS` de data.ts → global_config
-3. Migrar `HISTORICO_IR` de data.ts → global_config
-4. Atualizar JmuService para usar ConfigService
-5. Deprecar data.ts (adicionar warnings)
-6. Testar STM e JMU usando apenas banco
+1. Design tokens no tailwind.config.js
+2. Padronizar cores, fontes, espaçamentos
+3. Auditoria de consistência com script
+4. Documentar padrões visuais
 
-**Arquivo alvo:** `src/data.ts` (atualmente 200+ linhas hardcoded)
+**Benefício:** Interface polida e identidade visual forte
 
 ### 2. Componentes UI Reutilizáveis (1-2 dias)
 - Criar Button, Input, Select, Card em `src/components/ui/`
@@ -138,7 +138,8 @@ reports/                     # Relatórios de auditoria (ignorado no git)
 - `PROJECT_STATUS.md` - Este arquivo (resumo executivo)
 - `MANUAL_DO_PROJETO.md` - Guia para iniciantes
 - `DESIGN_SYSTEM.md` - Padrões de design
-- `AUDITORIA_DIARIA.md` - ⭐ Guia prático do script de auditoria (NOVO)
+- `DATA_DRIVEN_MIGRATION.md` - ⭐ Guia completo da migração Data-Driven (NOVO)
+- `AUDITORIA_DIARIA.md` - Guia prático do script de auditoria
 - `AUDIT_SCRIPT.md` - Documentação técnica do script de auditoria
 - `scripts/README.md` - Documentação de scripts utilitários
 

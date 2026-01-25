@@ -1,13 +1,13 @@
 # Plano de Correções e Melhorias - Salário do Servidor
 
 **Data Criação:** 23 de Janeiro de 2026
-**Última Atualização:** 24 de Janeiro de 2026
+**Última Atualização:** 25 de Janeiro de 2026
 **Projeto:** Calculadora de Salários do Poder Judiciário da União
 **Objetivo:** Refatorar, padronizar e otimizar o projeto para escalabilidade e manutenibilidade
 
 ---
 
-## ✅ STATUS ATUAL (24/01/2026)
+## ✅ STATUS ATUAL (25/01/2026)
 
 ### ✅ Completo (Fases 1-4)
 
@@ -18,10 +18,13 @@
 - ✅ **useCalculator.ts modularizado** - 398 → 99 linhas (Fase 1.2)
   - 4 hooks especializados: Config, Export, Results, State
 
-#### Fase 3: Sistema Data-Driven ✅
+#### Fase 3: Sistema Data-Driven ✅ (100%)
 - ✅ **ConfigService implementado** - Hierarquia global → power → org (Fase 3.1)
-- ✅ **Migração PROD executada** - Sistema em produção funcionando
-- ✅ **STM validado** - Órgão funcionando sem código customizado
+- ✅ **Migração PROD executada** - Sistema em produção funcionando (Fase 3.2)
+- ✅ **STM validado** - Órgão funcionando sem código customizado (Fase 3.2)
+- ✅ **Migration SQL criada** - BASES_2025, HISTORICO_PSS/IR migrados (Fase 3.3)
+- ✅ **Data.ts deprecated** - Mantido apenas como fallback (Fase 3.5)
+- ✅ **Módulos JMU refatorados** - Todos usam ConfigService (Fase 3.4)
 
 #### Fase 4: UX/UI ✅
 - ✅ **Hybrid Dashboard** - Sidebar desktop + accordions colapsáveis
@@ -31,17 +34,15 @@
 
 ### ⏳ Pendente (Próximas Prioridades)
 
-#### Fase 1.3: Componentes UI Reutilizáveis
-- ⏳ Criar Button, Input, Card components
-
-#### Fase 2: Design System Completo
+#### Fase 2: Design System Completo (RECOMENDADO)
 - ⏳ Design tokens no Tailwind (cores, fontes, espaçamentos)
 - ⏳ Padronizar todos os componentes
+- ⏳ Criar guia de estilo visual
+- ⏳ Auditoria de consistência
 
-#### Fase 3: Data-Driven 100%
-- ⏳ **Migrar BASES_2025** de data.ts → power_config (Fase 3.3)
-- ⏳ **Migrar HISTORICO_PSS/IR** → global_config (Fase 3.3)
-- ⏳ **Deprecar data.ts completamente** (Fase 3.5)
+#### Fase 1.3: Componentes UI Reutilizáveis
+- ⏳ Criar Button, Input, Card components
+- ⏳ Refatorar Calculator components para usar UI base
 
 ### 🔜 Backlog (Baixa Prioridade)
 - Painel de administração de configs (Fase 6.3)
