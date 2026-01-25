@@ -16,7 +16,7 @@
  */
 
 import { execSync } from 'child_process';
-import { writeFileSync, readFileSync } from 'fs';
+import { writeFileSync, readFileSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -58,7 +58,9 @@ function generateVersion() {
     };
 
     // Escrever arquivo version.json na pasta public
-    const outputPath = join(__dirname, '../public/version.json');
+    const publicDir = join(__dirname, '../public');
+    mkdirSync(publicDir, { recursive: true });
+    const outputPath = join(publicDir, 'version.json');
     writeFileSync(outputPath, JSON.stringify(versionInfo, null, 2), 'utf-8');
 
     console.log('✅ version.json generated successfully:');
