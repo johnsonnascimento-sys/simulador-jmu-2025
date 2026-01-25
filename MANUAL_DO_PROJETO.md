@@ -109,3 +109,7 @@ Comandos uteis:
 - `npm run dev` (rodar local)
 - `npm run audit` (verificar integridade)
 - `npm run typecheck` (validar TypeScript) *ou* `npx tsc --noEmit`
+
+## 6. Referencias Tecnicas
+- `DATABASE_SCHEMA.md` (detalhes do banco e ERD)
+- `PROJECT_ARCHITECTURE.md` (arquitetura da aplicacao)
