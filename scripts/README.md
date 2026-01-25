@@ -83,6 +83,109 @@ Validações críticas:
 
 ---
 
+## 🎨 audit-design-system.cjs
+
+**Comando:** `npm run audit:design`
+
+### O que faz
+
+Script de auditoria visual que escaneia o código-fonte em busca de violações do Design System, como cores hardcoded, valores arbitrários, dark mode faltando, etc.
+
+### Saída
+
+Gera 2 arquivos em `reports/`:
+- **design-audit-report.json** - Dados estruturados das violações
+- **design-audit-report.md** - Relatório legível em Markdown com sugestões
+
+### O que detecta
+
+✅ **Cores hardcoded:**
+- Uso de cores diretas (e.g., `text-blue-600`) em vez de tokens (`text-secondary`)
+- Cores fora do design system (indigo, purple, etc.)
+
+✅ **Valores arbitrários:**
+- Classes com valores hardcoded (e.g., `text-[14px]`) em vez de tokens semânticos (`text-body`)
+
+✅ **Border-radius inconsistente:**
+- Cards usando `rounded-md` ou `rounded-lg` em vez do padrão `rounded-2xl`
+
+✅ **Dark mode faltando:**
+- Backgrounds sem variante `dark:`
+- Textos sem variante `dark:`
+- Bordas sem variante `dark:`
+
+✅ **Classes não-semânticas:**
+- Uso de `text-lg` em vez de `text-h3`, `text-body`, etc.
+
+✅ **Cores deprecated:**
+- Uso de `slate-*` em vez de `neutral-*` (novo padrão)
+
+### Health Score
+
+O script calcula um score de saúde (0-100) baseado em:
+- Número de violações encontradas
+- Severidade de cada tipo de violação
+- Proporção de arquivos com problemas
+
+**Interpretação:**
+- **90-100:** ✅ Excelente - Design system bem mantido
+- **70-89:** ⚠️ Bom - Algumas melhorias recomendadas
+- **50-69:** ⚠️ Regular - Múltiplas violações
+- **0-49:** ❌ Ruim - Precisa de atenção imediata
+
+### Quando usar
+
+✅ **Antes de commits importantes** - Garantir consistência visual
+✅ **Após refatorações de UI** - Validar que segue o design system
+✅ **Code reviews** - Verificar padrões de design
+✅ **Onboarding de novos devs** - Identificar áreas que precisam ajustes
+
+### Exemplo de uso
+
+```bash
+# Executar auditoria visual
+npm run audit:design
+
+# Ver relatório com sugestões
+cat reports/design-audit-report.md
+
+# Ver dados estruturados
+cat reports/design-audit-report.json
+```
+
+### Exemplo de saída
+
+```
+🎨 Design System Audit
+
+Scanning codebase for design system violations...
+
+Found 45 component files
+
+✅ JSON report saved: reports/design-audit-report.json
+✅ Markdown report saved: reports/design-audit-report.md
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 AUDIT SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Files Scanned:         45
+Files with Violations: 8
+Total Violations:      23
+Health Score:          85.3/100
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  Status: GOOD - Some improvements recommended
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+View detailed report: reports/design-audit-report.md
+```
+
+### Referências
+
+- [DESIGN_SYSTEM.md](../DESIGN_SYSTEM.md) - Guia completo do design system
+- [tailwind.config.js](../tailwind.config.js) - Configuração de tokens
+
+---
+
 ## 🏷️ generate-version.js
 
 **Comando:** `npm run prebuild` (executa automaticamente antes de `npm run build`)

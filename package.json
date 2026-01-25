@@ -8,7 +8,8 @@
     "prebuild": "node scripts/generate-version.js",
     "build": "vite build",
     "preview": "vite preview",
-    "audit": "node scripts/audit-project.cjs"
+    "audit": "node scripts/audit-project.cjs",
+    "audit:design": "node scripts/audit-design-system.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.7",
