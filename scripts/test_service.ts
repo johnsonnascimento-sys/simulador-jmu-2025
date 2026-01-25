@@ -19,7 +19,7 @@ const mockState: CalculatorState = {
     aqTituloVR: 0,
     aqTreinoVR: 0,
     recebeAbono: false,
-    gratEspecificaTipo: 'nenhum',
+    gratEspecificaTipo: '0',
     gratEspecificaValor: 0,
     vpni_lei: 0,
     vpni_decisao: 0,
