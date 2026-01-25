@@ -3,6 +3,7 @@ import React from 'react';
 import { FileText, Table as TableIcon } from 'lucide-react';
 import { CalculatorState } from '../../types';
 import { formatCurrency } from '../../utils/calculations';
+import { VersionBadge } from '../ui/VersionBadge';
 
 interface ActionFooterProps {
     state: CalculatorState;
@@ -17,8 +18,15 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({ state, onExportPDF, 
                 <div className="hidden md:block">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Resultado Líquido</p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">Considerando todos os descontos legais e opcionais.</p>
+                    <div className="mt-2">
+                        <VersionBadge />
+                    </div>
                 </div>
                 <div className="flex items-center gap-6">
+                    {/* Version Badge - Mobile */}
+                    <div className="md:hidden">
+                        <VersionBadge />
+                    </div>
 
                     <div className="flex items-center gap-2 mr-4">
                         <button

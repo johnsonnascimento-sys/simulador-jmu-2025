@@ -1,10 +1,11 @@
 {
   "name": "simulador-jmu-moderno",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/generate-version.js",
     "build": "vite build",
     "preview": "vite preview"
   },
