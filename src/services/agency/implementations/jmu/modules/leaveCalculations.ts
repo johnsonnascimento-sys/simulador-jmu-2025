@@ -9,7 +9,7 @@
 import { CourtConfig } from '../../../../../types';
 import { calculatePss } from '../../../../../core/calculations/taxUtils';
 import { IJmuCalculationParams } from '../types';
-import { getDataForPeriod } from './baseCalculations';
+import { getDataForPeriod, normalizeAQPercent } from './baseCalculations';
 
 const requireAgencyConfig = (params: IJmuCalculationParams): CourtConfig => {
     if (!params.agencyConfig) {
@@ -33,8 +33,8 @@ export async function calculateCompensatoryLeave(params: IJmuCalculationParams):
         aqTituloVal = valorVR * params.aqTituloVR;
         aqTreinoVal = valorVR * params.aqTreinoVR;
     } else {
-        aqTituloVal = baseVencimento * params.aqTituloPerc;
-        aqTreinoVal = baseVencimento * params.aqTreinoPerc;
+        aqTituloVal = baseVencimento * normalizeAQPercent(params.aqTituloPerc);
+        aqTreinoVal = baseVencimento * normalizeAQPercent(params.aqTreinoPerc);
     }
 
     let gratVal = 0;

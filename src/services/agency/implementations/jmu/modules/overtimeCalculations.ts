@@ -10,7 +10,7 @@
 import { CourtConfig } from '../../../../../types';
 import { calculatePss } from '../../../../../core/calculations/taxUtils';
 import { IJmuCalculationParams } from '../types';
-import { getDataForPeriod } from './baseCalculations';
+import { getDataForPeriod, normalizeAQPercent } from './baseCalculations';
 
 export interface OvertimeResult {
     heVal50: number;
@@ -41,8 +41,8 @@ export async function calculateOvertime(params: IJmuCalculationParams): Promise<
         aqTituloVal = valorVR * params.aqTituloVR;
         aqTreinoVal = valorVR * params.aqTreinoVR;
     } else {
-        aqTituloVal = baseVencimento * params.aqTituloPerc;
-        aqTreinoVal = baseVencimento * params.aqTreinoPerc;
+        aqTituloVal = baseVencimento * normalizeAQPercent(params.aqTituloPerc);
+        aqTreinoVal = baseVencimento * normalizeAQPercent(params.aqTreinoPerc);
     }
 
     let gratVal = 0;

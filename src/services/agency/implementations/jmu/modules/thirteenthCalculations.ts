@@ -12,7 +12,7 @@
 import { CourtConfig } from '../../../../../types';
 import { calculatePss, calculateIrrf } from '../../../../../core/calculations/taxUtils';
 import { IJmuCalculationParams } from '../types';
-import { getDataForPeriod } from './baseCalculations';
+import { getDataForPeriod, normalizeAQPercent } from './baseCalculations';
 
 export interface ThirteenthResult {
     gratNatalinaTotal: number;
@@ -46,8 +46,8 @@ export async function calculateThirteenth(params: IJmuCalculationParams): Promis
         aqTituloVal = valorVR * params.aqTituloVR;
         aqTreinoVal = valorVR * params.aqTreinoVR;
     } else {
-        aqTituloVal = baseVencimento * params.aqTituloPerc;
-        aqTreinoVal = baseVencimento * params.aqTreinoPerc;
+        aqTituloVal = baseVencimento * normalizeAQPercent(params.aqTituloPerc);
+        aqTreinoVal = baseVencimento * normalizeAQPercent(params.aqTreinoPerc);
     }
 
     let gratVal = 0;

@@ -23,6 +23,8 @@ interface AdjustmentEntry {
 
 const normalizePercentage = (value: number) => (value > 1 ? value / 100 : value);
 
+export const normalizeAQPercent = (value: number) => (value > 1 ? value / 100 : value);
+
 const findCorrectionTable = (periodo: number, config: CourtConfig): AdjustmentEntry[] | null => {
     const schedule =
         (config as any).adjustment_schedule ||
@@ -119,8 +121,8 @@ export async function calculateBase(params: IJmuCalculationParams): Promise<numb
         aqTituloVal = valorVR * params.aqTituloVR;
         aqTreinoVal = valorVR * params.aqTreinoVR;
     } else {
-        aqTituloVal = baseVencimento * params.aqTituloPerc;
-        aqTreinoVal = baseVencimento * params.aqTreinoPerc;
+        aqTituloVal = baseVencimento * normalizeAQPercent(params.aqTituloPerc);
+        aqTreinoVal = baseVencimento * normalizeAQPercent(params.aqTreinoPerc);
     }
 
     let gratVal = 0;
@@ -152,8 +154,8 @@ export async function calculateBaseComponents(params: IJmuCalculationParams) {
         aqTituloVal = valorVR * params.aqTituloVR;
         aqTreinoVal = valorVR * params.aqTreinoVR;
     } else {
-        aqTituloVal = baseVencimento * params.aqTituloPerc;
-        aqTreinoVal = baseVencimento * params.aqTreinoPerc;
+        aqTituloVal = baseVencimento * normalizeAQPercent(params.aqTituloPerc);
+        aqTreinoVal = baseVencimento * normalizeAQPercent(params.aqTreinoPerc);
     }
 
     let gratVal = 0;

@@ -10,7 +10,7 @@
 import { CourtConfig } from '../../../../../types';
 import { calculatePss, calculateIrrf } from '../../../../../core/calculations/taxUtils';
 import { IJmuCalculationParams } from '../types';
-import { getDataForPeriod } from './baseCalculations';
+import { getDataForPeriod, normalizeAQPercent } from './baseCalculations';
 
 export interface DeductionsResult {
     pss: number;
@@ -39,7 +39,7 @@ export async function calculateDeductions(grossValue: number, params: IJmuCalcul
     // Recalculate components needed for PSS Base
     let aqTituloVal = 0;
     if (params.periodo >= 1) aqTituloVal = valorVR * params.aqTituloVR;
-    else aqTituloVal = baseVencimento * params.aqTituloPerc;
+    else aqTituloVal = baseVencimento * normalizeAQPercent(params.aqTituloPerc);
 
     const funcaoValor = params.funcao === '0' ? 0 : (funcoes[params.funcao] || 0);
 
@@ -82,7 +82,7 @@ export async function calculateDeductions(grossValue: number, params: IJmuCalcul
     // Recalculate full taxable partials
     let aqTreinoVal = 0;
     if (params.periodo >= 1) aqTreinoVal = valorVR * params.aqTreinoVR;
-    else aqTreinoVal = baseVencimento * params.aqTreinoPerc;
+    else aqTreinoVal = baseVencimento * normalizeAQPercent(params.aqTreinoPerc);
 
     // Total Tributavel Construction
     let totalTrib = baseVencimento + gaj + aqTituloVal + aqTreinoVal + funcaoValor + gratVal +

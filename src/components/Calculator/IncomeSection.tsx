@@ -32,7 +32,7 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({ state, update, cou
                             <div>
                                 <label className={styles.label}>Cargo</label>
                                 <select className={styles.input} value={state.cargo} onChange={e => update('cargo', e.target.value)}>
-                                    <option value="tecnico">Técnico</option>
+                                    <option value="tec">Técnico</option>
                                     <option value="analista">Analista</option>
                                 </select>
                             </div>
@@ -93,6 +93,9 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({ state, update, cou
                                     <label className={styles.label}>Títulos %</label>
                                     <select className={styles.input} value={state.aqTituloPerc} onChange={e => update('aqTituloPerc', Number(e.target.value))}>
                                         <option value={0}>0%</option>
+                                        {state.cargo === 'tec' && (
+                                            <option value={0.05}>5% (Graduação)</option>
+                                        )}
                                         <option value={0.075}>7.5% (Especialização)</option>
                                         <option value={0.10}>10% (Mestrado)</option>
                                         <option value={0.125}>12.5% (Doutorado)</option>
@@ -102,9 +105,9 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({ state, update, cou
                                     <label className={styles.label}>Treinamento %</label>
                                     <select className={styles.input} value={state.aqTreinoPerc} onChange={e => update('aqTreinoPerc', Number(e.target.value))}>
                                         <option value={0}>0%</option>
-                                        <option value={1}>1% (120h)</option>
-                                        <option value={2}>2% (240h)</option>
-                                        <option value={3}>3% (360h)</option>
+                                        <option value={0.01}>1% (120h)</option>
+                                        <option value={0.02}>2% (240h)</option>
+                                        <option value={0.03}>3% (360h)</option>
                                     </select>
                                 </div>
                             </div>
