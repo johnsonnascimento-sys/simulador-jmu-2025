@@ -9,23 +9,44 @@
 
 ## ✅ STATUS ATUAL (24/01/2026)
 
-### Completo
-- ✅ **ConfigService** - Sistema de configuração hierárquica implementado (Fase 3.1)
-- ✅ **Hybrid Dashboard** - Interface moderna com sidebar + accordions (Fase 4)
-- ✅ **Mobile Top Bar** - Barra fixa mobile com resultados (Fase 4)
-- ✅ **Sistema de Versionamento** - Badge automático com git info (Não estava no plano)
-- ✅ **Version 1.0.0** - Release com Hybrid Dashboard
+### ✅ Completo (Fases 1-4)
 
-### Pendente (Alta Prioridade)
-- ⏳ **Modularizar JmuService.ts** - 801 linhas → dividir em módulos (Fase 1.1)
-- ⏳ **Modularizar useCalculator.ts** - 398 linhas → hooks especializados (Fase 1.2)
-- ⏳ **Migrar dados hardcoded** - data.ts → banco (Fase 3.3)
-- ⏳ **Design System** - Padronizar componentes e tokens (Fase 2)
+#### Fase 1: Modularização ✅
+- ✅ **JmuService.ts modularizado** - 801 → 140 linhas (Fase 1.1)
+  - 9 módulos criados em `jmu/modules/`
+  - baseCalculations, benefitsCalculations, vacationCalculations, etc.
+- ✅ **useCalculator.ts modularizado** - 398 → 99 linhas (Fase 1.2)
+  - 4 hooks especializados: Config, Export, Results, State
 
-### Backlog
-- 🔜 Componentes UI reutilizáveis (Fase 1.3)
-- 🔜 Painel de administração (Fase 6.3)
-- 🔜 Testes automatizados (Fase 5.2)
+#### Fase 3: Sistema Data-Driven ✅
+- ✅ **ConfigService implementado** - Hierarquia global → power → org (Fase 3.1)
+- ✅ **Migração PROD executada** - Sistema em produção funcionando
+- ✅ **STM validado** - Órgão funcionando sem código customizado
+
+#### Fase 4: UX/UI ✅
+- ✅ **Hybrid Dashboard** - Sidebar desktop + accordions colapsáveis
+- ✅ **Mobile Top Bar** - Barra fixa mobile com resultados
+- ✅ **Sistema de Versionamento** - Badge automático com git info
+- ✅ **Version 1.0.0** - Release estável em produção
+
+### ⏳ Pendente (Próximas Prioridades)
+
+#### Fase 1.3: Componentes UI Reutilizáveis
+- ⏳ Criar Button, Input, Card components
+
+#### Fase 2: Design System Completo
+- ⏳ Design tokens no Tailwind (cores, fontes, espaçamentos)
+- ⏳ Padronizar todos os componentes
+
+#### Fase 3: Data-Driven 100%
+- ⏳ **Migrar BASES_2025** de data.ts → power_config (Fase 3.3)
+- ⏳ **Migrar HISTORICO_PSS/IR** → global_config (Fase 3.3)
+- ⏳ **Deprecar data.ts completamente** (Fase 3.5)
+
+### 🔜 Backlog (Baixa Prioridade)
+- Painel de administração de configs (Fase 6.3)
+- Testes automatizados (Fase 5.2)
+- GenericAgencyService para órgãos simples (Fase 6.2)
 
 ---
 
@@ -736,40 +757,44 @@ Script para sincronizar configurações entre ambientes (dev → prod).
 
 ## 🎯 PRÓXIMOS PASSOS RECOMENDADOS
 
-### Opção 1: Modularização (Alta prioridade técnica)
-**Benefício:** Reduz complexidade, melhora manutenibilidade
-**Esforço:** 3-5 dias
-**Impacto:** Facilita adição de novos órgãos
-
-1. Modularizar JmuService.ts (Fase 1.1)
-2. Modularizar useCalculator.ts (Fase 1.2)
-3. Criar componentes UI reutilizáveis (Fase 1.3)
-
-### Opção 2: Data-Driven Completo (Alta prioridade estratégica)
+### Opção 1: Data-Driven Completo ⭐ (RECOMENDADO)
 **Benefício:** Zero código para novos órgãos
 **Esforço:** 2-3 dias
 **Impacto:** Escalabilidade máxima
 
-1. Migrar BASES_2025 para power_config (Fase 3.3)
-2. Migrar HISTORICO_PSS/IR para global_config (Fase 3.3)
-3. Deprecar data.ts completamente (Fase 3.5)
+**Tarefas:**
+1. ✅ ~~Modularizar JmuService.ts~~ - COMPLETO (140 linhas)
+2. ✅ ~~Modularizar useCalculator.ts~~ - COMPLETO (99 linhas)
+3. ⏳ Migrar BASES_2025 para power_config (Fase 3.3)
+4. ⏳ Migrar HISTORICO_PSS/IR para global_config (Fase 3.3)
+5. ⏳ Deprecar data.ts completamente (Fase 3.5)
 
-### Opção 3: Design System (Melhor UX)
+**Por que agora?**
+- ConfigService já existe e funciona
+- Modularização completa facilita migração
+- Maior impacto com menor esforço
+- Desbloqueia criação fácil de novos órgãos
+- Pode ser feito sem quebrar produção
+
+### Opção 2: Design System (Melhor UX)
 **Benefício:** Interface consistente e profissional
 **Esforço:** 2-3 dias
 **Impacto:** Visual e branding
 
+**Tarefas:**
 1. Criar design tokens no Tailwind (Fase 2.2)
-2. Criar componentes Button/Input/Card (Fase 2.3)
+2. Criar componentes Button/Input/Card (Fase 1.3)
 3. Refatorar Calculator para usar componentes (Fase 2.3)
 
-### Recomendação Atual
+### Opção 3: Componentes UI Reutilizáveis
+**Benefício:** Código mais limpo e consistente
+**Esforço:** 1-2 dias
+**Impacto:** Manutenibilidade
 
-**Ir com Opção 2 (Data-Driven)** porque:
-- ConfigService já existe
-- Maior impacto com menor esforço
-- Desbloqueia criação de STM/outros órgãos
-- Pode ser feito sem quebrar produção
+**Tarefas:**
+1. Criar Button, Input, Select, Card (Fase 1.3)
+2. Refatorar componentes existentes
+3. Documentar componentes em Storybook (opcional)
 
 ---
 
