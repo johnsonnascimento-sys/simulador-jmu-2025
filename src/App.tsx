@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import Calculator from './pages/Calculator';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminHub from './pages/AdminHub';
 import AdminGlobal from './pages/AdminGlobal';
 import AdminPower from './pages/AdminPower';
 import AdminOrg from './pages/AdminOrg';
@@ -29,6 +30,11 @@ function App() {
           {/* Rotas de Login/Admin */}
           <Route path="/login" element={<Login />} />
           <Route path="/admin" element={
+            <ProtectedRoute>
+              <AdminHub />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/legacy" element={
             <ProtectedRoute>
               <AdminDashboard />
             </ProtectedRoute>
