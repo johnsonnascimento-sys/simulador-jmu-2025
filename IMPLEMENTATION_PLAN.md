@@ -1,8 +1,31 @@
 # Plano de Correções e Melhorias - Salário do Servidor
 
-**Data:** 23 de Janeiro de 2026  
-**Projeto:** Calculadora de Salários do Poder Judiciário da União  
+**Data Criação:** 23 de Janeiro de 2026
+**Última Atualização:** 24 de Janeiro de 2026
+**Projeto:** Calculadora de Salários do Poder Judiciário da União
 **Objetivo:** Refatorar, padronizar e otimizar o projeto para escalabilidade e manutenibilidade
+
+---
+
+## ✅ STATUS ATUAL (24/01/2026)
+
+### Completo
+- ✅ **ConfigService** - Sistema de configuração hierárquica implementado (Fase 3.1)
+- ✅ **Hybrid Dashboard** - Interface moderna com sidebar + accordions (Fase 4)
+- ✅ **Mobile Top Bar** - Barra fixa mobile com resultados (Fase 4)
+- ✅ **Sistema de Versionamento** - Badge automático com git info (Não estava no plano)
+- ✅ **Version 1.0.0** - Release com Hybrid Dashboard
+
+### Pendente (Alta Prioridade)
+- ⏳ **Modularizar JmuService.ts** - 801 linhas → dividir em módulos (Fase 1.1)
+- ⏳ **Modularizar useCalculator.ts** - 398 linhas → hooks especializados (Fase 1.2)
+- ⏳ **Migrar dados hardcoded** - data.ts → banco (Fase 3.3)
+- ⏳ **Design System** - Padronizar componentes e tokens (Fase 2)
+
+### Backlog
+- 🔜 Componentes UI reutilizáveis (Fase 1.3)
+- 🔜 Painel de administração (Fase 6.3)
+- 🔜 Testes automatizados (Fase 5.2)
 
 ---
 
@@ -708,3 +731,46 @@ Script para sincronizar configurações entre ambientes (dev → prod).
 - [ ] `GenericAgencyService` funciona para órgãos simples
 - [ ] Painel de admin permite gerenciar configurações
 - [ ] Scripts de validação e sync funcionam
+
+---
+
+## 🎯 PRÓXIMOS PASSOS RECOMENDADOS
+
+### Opção 1: Modularização (Alta prioridade técnica)
+**Benefício:** Reduz complexidade, melhora manutenibilidade
+**Esforço:** 3-5 dias
+**Impacto:** Facilita adição de novos órgãos
+
+1. Modularizar JmuService.ts (Fase 1.1)
+2. Modularizar useCalculator.ts (Fase 1.2)
+3. Criar componentes UI reutilizáveis (Fase 1.3)
+
+### Opção 2: Data-Driven Completo (Alta prioridade estratégica)
+**Benefício:** Zero código para novos órgãos
+**Esforço:** 2-3 dias
+**Impacto:** Escalabilidade máxima
+
+1. Migrar BASES_2025 para power_config (Fase 3.3)
+2. Migrar HISTORICO_PSS/IR para global_config (Fase 3.3)
+3. Deprecar data.ts completamente (Fase 3.5)
+
+### Opção 3: Design System (Melhor UX)
+**Benefício:** Interface consistente e profissional
+**Esforço:** 2-3 dias
+**Impacto:** Visual e branding
+
+1. Criar design tokens no Tailwind (Fase 2.2)
+2. Criar componentes Button/Input/Card (Fase 2.3)
+3. Refatorar Calculator para usar componentes (Fase 2.3)
+
+### Recomendação Atual
+
+**Ir com Opção 2 (Data-Driven)** porque:
+- ConfigService já existe
+- Maior impacto com menor esforço
+- Desbloqueia criação de STM/outros órgãos
+- Pode ser feito sem quebrar produção
+
+---
+
+**Última atualização:** 24/01/2026
