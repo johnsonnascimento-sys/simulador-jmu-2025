@@ -68,12 +68,14 @@ export async function getDataForPeriod(periodo: number, agencyConfig: CourtConfi
     const sal = JSON.parse(JSON.stringify(config.bases?.salario?.analista || {}));
     const salTecnico = JSON.parse(JSON.stringify(config.bases?.salario?.tec || {}));
 
-    const salario: any = { analista: {}, tecnico: {} };
+    const salario: any = { analista: {}, tec: {}, tecnico: {} };
     for (let padrao in sal) {
         salario.analista[padrao] = applyCorrections(sal[padrao], periodo, config);
     }
     for (let padrao in salTecnico) {
-        salario.tecnico[padrao] = applyCorrections(salTecnico[padrao], periodo, config);
+        const value = applyCorrections(salTecnico[padrao], periodo, config);
+        salario.tec[padrao] = value;
+        salario.tecnico[padrao] = value;
     }
 
     const func = JSON.parse(JSON.stringify(config.bases?.funcoes || {}));
