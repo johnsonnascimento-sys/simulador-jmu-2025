@@ -1,4 +1,5 @@
 # Manual Tecnico - Salario do Servidor (v2.0)
+Atualizado em: 25/01/2026
 
 ## 1. Visao Geral do Produto
 Plataforma Multi-Tenancy de Transparencia Salarial para simulacao de holerites do setor publico.
@@ -12,8 +13,9 @@ Stack:
 - Supabase (PostgreSQL + RLS)
 
 ## 2. Arquitetura de Dados (O Core)
-O sistema e 100% Data-Driven. Nao existem valores hardcoded no codigo de calculo.
-Todas as regras ficam no banco e sao combinadas por hierarquia.
+O sistema e majoritariamente Data-Driven. Bases, impostos e beneficios vem do banco
+e sao combinados por hierarquia. Alguns valores legados ainda estao hardcoded
+e devem ser migrados (ex: diarias).
 
 ### Hierarquia de Configuracao (Cascade Configuration)
 1) Global (`global_config`): regras universais (IR, PSS, teto RGPS).
@@ -85,6 +87,12 @@ na configuracao final (sem valores hardcoded). Os modulos usam `params.agencyCon
 - FoodAllowanceCard
 - PreschoolCard
 
+### Painel Administrativo (Fase 6)
+- Rotas protegidas: `/admin`, `/admin/global`, `/admin/power`, `/admin/org`.
+- Servico: `src/services/admin/AdminService.ts` (CRUD das tabelas config).
+- UI: `src/components/Admin/JsonEditor.tsx` e `ConfigTable.tsx`.
+- Antes de salvar, a UI exige confirmacao (`window.confirm`), pois impacta calculos imediatos.
+
 ## 4. Guia de Manutencao e Atualizacao
 ### Cenario A (Novo Ano/IR)
 Pergunta: "Onde atualizar a tabela de IR 2027?"
@@ -99,11 +107,20 @@ Pergunta: "Como adicionar o TRF-1?"
 Resposta: criar registro em `org_config` apontando para `power_name = 'PJU'`.
 Se houver excecoes locais, use `configuration` para overrides.
 
+### Cenario D (AQ Historico e Treinamento)
+Pergunta: "Como ajustar regras de AQ (graduacao/treinamento)?"
+Resposta: editar `power_config` com `config_key = 'aq_rules'`.
+- Percentuais em decimal (ex: 0.01 = 1%).
+- Regras historicas usam `valid_from`/`valid_to` (ex: pre-2026 e 2026+).
+
 ## 5. Estrutura de Pastas e Comandos
 Pastas chave:
 - `src/services/agency/implementations/` (logica de calculo)
 - `src/services/config/` (configuracao remota e merge)
+- `src/services/admin/` (CRUD admin)
 - `src/components/Calculator/cards/` (cards atomicos)
+- `src/components/Admin/` (UI do painel)
+- `supabase/seeds/` (scripts SQL de dados base)
 
 Comandos uteis:
 - `npm run dev` (rodar local)

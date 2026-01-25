@@ -1,4 +1,5 @@
 # Estrutura do Banco de Dados
+Atualizado em: 25/01/2026
 
 Este documento detalha a estrutura do banco de dados do projeto **Salário do Servidor**, hospedado no Supabase. O sistema utiliza uma arquitetura "Data-Driven" para gerenciar regras de negócio complexas e históricas (2024, 2025, 2026+) sem necessidade de redeploys constantes.
 
@@ -65,6 +66,14 @@ Configurações específicas de um "Poder" ou carreira macro.
 * **Colunas Importantes**:
     * `power_name`: Agrupador (ex: `PJU`).
     * `config_key`: Identificador (ex: `salary_bases` para vencimentos básicos).
+    * `valid_from` / `valid_to`: versionamento temporal de regras (historico por vigencia).
+
+**Chaves comuns em `power_config`**
+- `salary_bases` (bases salariais e funcoes)
+- `benefits` (auxilios)
+- `cj1_integral_base` (base VR)
+- `gratification_percentages` (GAJ/GAE/GAS)
+- `aq_rules` (regras de adicional de qualificacao)
 
 ### 3. `org_config`
 Cadastro dos órgãos disponíveis no simulador.
@@ -114,5 +123,15 @@ O banco de dados utiliza **Row Level Security** para controlar acesso:
     "fc1": 1215.34,
     "cj3": 10029.94
   }
+}
+```
+
+### Regras de AQ (`power_config`)
+Percentuais em decimal (ex: 0.01 = 1%).
+```json
+{
+  "graduacao": 0.05,
+  "treinamento_coef": 0.01,
+  "treinamento_max": 0.03
 }
 ```

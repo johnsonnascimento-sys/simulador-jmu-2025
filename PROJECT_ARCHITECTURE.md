@@ -1,4 +1,5 @@
 # Project Architecture - Salario do Servidor (v2.0)
+Atualizado em: 25/01/2026
 
 ## 1. Visao Geral
 Arquitetura modular, data-driven e multi-tenancy para simulacao de holerites.
@@ -32,7 +33,15 @@ em modulos isolados, sem valores hardcoded.
 - `src/services/config/mapEffectiveConfig.ts`: adapta para `CourtConfig` usado na UI.
 - `src/services/courtService.ts`: fallback legado (courts table) quando necessario.
 
-### 2.5 Utils e Calculos Comuns
+### 2.5 Painel Administrativo (Admin)
+- `src/services/admin/AdminService.ts`: CRUD das tabelas `global_config`, `power_config`, `org_config`.
+- `src/types/admin.ts`: tipos de registros e DTOs para o admin.
+- `src/components/Admin/JsonEditor.tsx`: editor JSON simples com validacao.
+- `src/components/Admin/ConfigTable.tsx`: tabela generica de configuracoes.
+- Paginas protegidas: `AdminHub`, `AdminGlobal`, `AdminPower`, `AdminOrg`.
+- Rotas: `/admin`, `/admin/global`, `/admin/power`, `/admin/org`.
+
+### 2.6 Utils e Calculos Comuns
 - `src/utils/calculations.ts`: helpers (IR, PSS, reajustes e tabelas por periodo).
 - `src/core/calculations/`: funcoes puras para calculos tributarios.
 
@@ -54,3 +63,8 @@ em modulos isolados, sem valores hardcoded.
 - Novo orgao: adicionar em `org_config` e mapear slug.
 - Nova carreira/poder: adicionar em `power_config`.
 - Novas regras globais: adicionar em `global_config`.
+- Seeds e historico: usar scripts em `supabase/seeds/` (ex: regras AQ e bases PJU).
+
+## 6. Seeds e Dados Iniciais
+- `supabase/seeds/001_seed_pju_data.sql`: dados base (PJU 2025).
+- `supabase/seeds/002_update_pju_aq_rules.sql`: historico de AQ (pre-2026 e 2026+).
