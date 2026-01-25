@@ -36,7 +36,8 @@ export const useCalculator = () => {
         agencyService,
         loadingAgency,
         courtConfig,
-        loadingConfig
+        loadingConfig,
+        configError
     } = useCalculatorConfig(slug);
 
     // 3. Exportação
@@ -94,6 +95,7 @@ export const useCalculator = () => {
         pendingExportType,
         setState,
         agencyName: agency?.name || 'Carregando...',
-        loadingAgency
+        loadingAgency,
+        configError
     };
 };

@@ -22,7 +22,7 @@ export const CalculatorHeader: React.FC<CalculatorHeaderProps> = ({ courtConfig,
                 </button>
                 <div>
                     <h1 className="text-h3 font-bold text-neutral-900 dark:text-white">
-                        {agencyName || (courtConfig ? courtConfig.name : 'Simulador')}
+                        {agencyName || 'Simulador'}
                     </h1>
                     <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-md bg-secondary/10 text-secondary text-body-xs font-bold uppercase tracking-wider">
                         <span className="w-2 h-2 rounded-full bg-secondary"></span>

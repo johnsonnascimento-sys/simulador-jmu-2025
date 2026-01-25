@@ -4,6 +4,7 @@
 
 export { ConfigService, configService } from './ConfigService';
 export { deepMerge, deepMergeMultiple } from './mergeConfig';
+export { mapEffectiveConfigToCourtConfig } from './mapEffectiveConfig';
 export type {
     GlobalConfig,
     PowerConfig,

@@ -13,14 +13,15 @@ import { ActionFooter } from '../components/Calculator/ActionFooter';
 import DonationModal from '../components/DonationModal';
 
 export default function Calculator() {
-  const {
-    state,
-    update,
-    courtConfig,
-    loadingConfig,
-    resultRows,
-    donationModalOpen,
-    setDonationModalOpen,
+    const {
+        state,
+        update,
+        courtConfig,
+        loadingConfig,
+        configError,
+        resultRows,
+        donationModalOpen,
+        setDonationModalOpen,
     handleDonationComplete,
     initiateExportPDF,
     initiateExportExcel,
@@ -39,6 +40,16 @@ export default function Calculator() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <p className="text-gray-500 animate-pulse">Carregando...</p>
+      </div>
+    );
+  }
+
+  if (configError || !courtConfig) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-50 dark:bg-neutral-900">
+        <p className="text-neutral-500 dark:text-neutral-300">
+          {configError || 'Configuração indisponível.'}
+        </p>
       </div>
     );
   }

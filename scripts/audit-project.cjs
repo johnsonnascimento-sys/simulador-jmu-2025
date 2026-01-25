@@ -258,8 +258,10 @@ function validatePhases(keyFiles, directories) {
       details: `ConfigService: ${keyFiles.configService.total} linhas`,
     },
     phase_3_3_migrate_data: {
-      complete: false, // Manual check needed
-      details: `data.ts ainda existe com ${keyFiles.dataTs.total} linhas (a deprecar)`,
+      complete: !keyFiles.dataTs.exists,
+      details: keyFiles.dataTs.exists
+        ? `data.ts ainda existe com ${keyFiles.dataTs.total} linhas (a deprecar)`
+        : 'data.ts removido com sucesso',
     },
   };
 }

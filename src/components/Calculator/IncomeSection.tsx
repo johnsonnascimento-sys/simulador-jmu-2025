@@ -13,7 +13,7 @@ interface IncomeSectionProps {
 }
 
 export const IncomeSection: React.FC<IncomeSectionProps> = ({ state, update, courtConfig, styles, isNovoAQ }) => {
-    const currentTables = getTablesForPeriod(state.periodo, courtConfig || undefined);
+    const currentTables = getTablesForPeriod(state.periodo, courtConfig);
 
     return (
         <div className="space-y-6">

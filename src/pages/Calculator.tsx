@@ -41,7 +41,8 @@ export default function Calculator() {
         updateRubrica,
         setState,
         agencyName,
-        loadingAgency
+        loadingAgency,
+        configError
     } = useCalculator();
 
     const isNovoAQ = state.periodo >= 1;
@@ -50,6 +51,16 @@ export default function Calculator() {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <p className="text-gray-500 animate-pulse">Carregando...</p>
+            </div>
+        );
+    }
+
+    if (configError || !courtConfig) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-neutral-50 dark:bg-neutral-900">
+                <p className="text-neutral-500 dark:text-neutral-300">
+                    {configError || 'Configuração indisponível.'}
+                </p>
             </div>
         );
     }

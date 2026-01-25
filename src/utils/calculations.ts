@@ -1,4 +1,3 @@
-import { BASES_2025 as DEFAULT_BASES, HISTORICO_PSS as DEFAULT_PSS, HISTORICO_IR as DEFAULT_IR, DEDUCAO_DEP as DEFAULT_DEP, COTA_PRE_ESCOLAR as DEFAULT_PRE_SCHOOL, CJ1_INTEGRAL_BASE as DEFAULT_CJ1 } from '../data';
 import { CalculatorState, SalaryTable, FuncoesTable, CourtConfig, TaxTable } from '../types';
 
 export const formatCurrency = (val: number) => {
@@ -17,9 +16,17 @@ export const calcReajuste = (valorBase: number, steps: number) => {
 // Helper for rounding to 2 decimals (fixes precision issues vs Original JS)
 const round2 = (val: number) => Math.round(val * 100) / 100;
 
+const requireConfig = (config?: CourtConfig): CourtConfig => {
+    if (!config) {
+        throw new Error('CourtConfig is required for calculations.');
+    }
+    return config;
+};
+
 export const getTablesForPeriod = (periodo: number, config?: CourtConfig) => {
-    const BASES = config?.bases || DEFAULT_BASES;
-    const CJ1_BASE = config?.values?.cj1_integral_base ?? DEFAULT_CJ1;
+    const resolved = requireConfig(config);
+    const BASES = resolved.bases;
+    const CJ1_BASE = resolved.values?.cj1_integral_base ?? 0;
 
     const steps = periodo >= 2 ? periodo - 1 : 0;
 
@@ -44,7 +51,7 @@ export const getTablesForPeriod = (periodo: number, config?: CourtConfig) => {
 
 export const calcPSS = (base: number, tabelaKey: string, config?: CourtConfig) => {
     let total = 0;
-    const HIST_PSS = config?.historico_pss || DEFAULT_PSS;
+    const HIST_PSS = requireConfig(config).historico_pss;
     const table: TaxTable = HIST_PSS[tabelaKey];
     if (!table) return 0;
 
@@ -58,7 +65,7 @@ export const calcPSS = (base: number, tabelaKey: string, config?: CourtConfig) =
 };
 
 export const calcIR = (base: number, deductionKey: string, config?: CourtConfig) => {
-    const HIST_IR = config?.historico_ir || DEFAULT_IR;
+    const HIST_IR = requireConfig(config).historico_ir;
     const deduction = HIST_IR[deductionKey] || 896.00;
     let val = (base * 0.275) - deduction;
     return val > 0 ? val : 0;
@@ -109,12 +116,13 @@ export const calculateBaseFixa = (state: CalculatorState, funcoes: FuncoesTable,
 };
 
 export const calculateAll = (state: CalculatorState, config?: CourtConfig): CalculatorState => {
+    const resolvedConfig = requireConfig(config);
     const { salario, funcoes, valorVR } = getTablesForPeriod(state.periodo, config);
     const { baseSemFC, totalComFC, funcaoValor: funcaoValorCalc } = calculateBaseFixa(state, funcoes, salario, valorVR);
 
-    const HIST_PSS = config?.historico_pss || DEFAULT_PSS;
-    const PRE_SCHOOL = config?.values?.pre_school ?? DEFAULT_PRE_SCHOOL;
-    const DEDUC_DEP = config?.values?.deducao_dep ?? DEFAULT_DEP;
+    const HIST_PSS = resolvedConfig.historico_pss;
+    const PRE_SCHOOL = resolvedConfig.values?.pre_school ?? 0;
+    const DEDUC_DEP = resolvedConfig.values?.deducao_dep ?? 0;
 
     // 1. Basic Income
     const baseVencimento = salario[state.cargo][state.padrao] || 0;

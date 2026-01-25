@@ -93,6 +93,10 @@ export const useCalculatorResults = (
 
     // Generate result rows for display
     const resultRows = useMemo(() => {
+        if (!courtConfig) {
+            return [];
+        }
+
         const rows: Array<{ label: string; value: number; type: 'C' | 'D' }> = [];
         const isNovoAQ = state.periodo >= 1;
 
@@ -115,7 +119,7 @@ export const useCalculatorResults = (
         }
 
         if (state.funcao !== '0') {
-            const tables = getTablesForPeriod(state.periodo, courtConfig || undefined);
+            const tables = getTablesForPeriod(state.periodo, courtConfig);
             const valorFC = tables.funcoes[state.funcao] || 0;
             let labelTipo = "FUNÇÃO COMISSIONADA (OPÇÃO)";
             if (state.funcao.startsWith('cj')) labelTipo = "CARGO EM COMISSÃO";

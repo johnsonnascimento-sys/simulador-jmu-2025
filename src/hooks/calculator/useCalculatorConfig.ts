@@ -12,6 +12,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CourtConfig } from '../../types';
 import { getCourtBySlug } from '../../services/courtService';
+import { configService } from '../../services/config';
+import { mapEffectiveConfigToCourtConfig } from '../../services/config/mapEffectiveConfig';
 import { supabase } from '../../lib/supabase';
 import { JmuService } from '../../services/agency/implementations/JmuService';
 
@@ -26,6 +28,7 @@ export const useCalculatorConfig = (slug: string | undefined) => {
     // Court Config State
     const [courtConfig, setCourtConfig] = useState<CourtConfig | null>(null);
     const [loadingConfig, setLoadingConfig] = useState(true);
+    const [configError, setConfigError] = useState<string | null>(null);
 
     // Load Agency
     useEffect(() => {
@@ -72,13 +75,23 @@ export const useCalculatorConfig = (slug: string | undefined) => {
         async function fetchConfig() {
             try {
                 if (slug) {
-                    const court = await getCourtBySlug(slug);
-                    if (court) {
-                        setCourtConfig(court.config);
-                    }
+                    const effectiveConfig = await configService.getEffectiveConfig(slug);
+                    setCourtConfig(mapEffectiveConfigToCourtConfig(effectiveConfig));
+                    setConfigError(null);
                 }
             } catch (err) {
-                console.error("Failed to load court config", err);
+                console.error("Failed to load config from ConfigService", err);
+                try {
+                    const court = slug ? await getCourtBySlug(slug) : null;
+                    if (court) {
+                        setCourtConfig(court.config);
+                        setConfigError(null);
+                        return;
+                    }
+                } catch (fallbackErr) {
+                    console.error("Failed to load config from courts table", fallbackErr);
+                }
+                setConfigError('Configuração não encontrada.');
             } finally {
                 setLoadingConfig(false);
             }
@@ -91,6 +104,7 @@ export const useCalculatorConfig = (slug: string | undefined) => {
         agencyService,
         loadingAgency,
         courtConfig,
-        loadingConfig
+        loadingConfig,
+        configError
     };
 };
